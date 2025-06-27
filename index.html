@@ -140,291 +140,9 @@
             overflow-y: auto;
         }
 
-        .person-card {
-            background: #222;
-            border: 2px solid #333;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .person-card:hover {
-            border-color: #ff6b35;
-            background: #333;
-            transform: translateY(-2px);
-        }
-
-        .person-card.selected {
-            border-color: #ff6b35;
-            background: #2a1810;
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
-        }
-
-        .person-name {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 5px;
-        }
-
-        .person-info {
-            color: #ccc;
-            font-size: 0.9em;
-            margin-bottom: 3px;
-        }
-
-        .person-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .status-pendente {
-            background: #660000;
-            color: #ff6666;
-        }
-
-        .status-entrada {
-            background: #664400;
-            color: #ffaa00;
-        }
-
-        .status-quitado {
-            background: #006600;
-            color: #66ff66;
-        }
-
-        /* PAINEL DE DETALHES */
-        .details-panel {
-            background: #111;
-            border-radius: 15px;
-            padding: 30px;
-            border: 2px solid #333;
-            grid-column: 1 / -1;
-            display: none;
-        }
-
-        .details-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 30px;
-        }
-
-        .info-section {
-            background: #222;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #333;
-        }
-
-        .section-title {
-            color: #ff6b35;
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #333;
-            text-transform: uppercase;
-        }
-
-        .info-item {
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .info-label {
-            font-weight: 600;
-            color: #ccc;
-            min-width: 140px;
-        }
-
-        .info-value {
-            color: #fff;
-            text-align: right;
-            flex: 1;
-        }
-
-        .highlight-sim {
-            color: #ff6b35;
-            font-weight: bold;
-        }
-
-        .highlight-nao {
-            color: #4ade80;
-        }
-
-        /* PAINEL DE PAGAMENTO */
-        .payment-panel {
-            background: #222;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #333;
-        }
-
-        .payment-summary {
-            background: #333;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #444;
-        }
-
-        .payment-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .payment-total {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #ff6b35;
-            border-top: 1px solid #555;
-            padding-top: 8px;
-        }
-
-        .payment-form {
-            margin-top: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #333;
-            border-radius: 8px;
-            background: #111;
-            color: #fff;
-            font-size: 14px;
-        }
-
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #ff6b35;
-            background: #222;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .btn-payment {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-        }
-
-        .btn-process {
-            background: linear-gradient(45deg, #22c55e 0%, #16a34a 100%);
-            color: white;
-        }
-
-        .btn-process:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
-        }
-
-        .btn-print {
-            background: linear-gradient(45deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
-        }
-
-        .btn-print:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-cancel {
-            background: linear-gradient(45deg, #6b7280 0%, #4b5563 100%);
-            color: white;
-        }
-
-        .btn-cancel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(107, 114, 128, 0.3);
-        }
-
-        /* MENSAGENS */
-        .message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .message-success {
-            background: #1a472a;
-            color: #4ade80;
-            border: 1px solid #16a34a;
-        }
-
-        .message-error {
-            background: #660000;
-            color: #ff6666;
-            border: 1px solid #cc0000;
-        }
-
-        .message-info {
-            background: #1a1a2e;
-            color: #60a5fa;
-            border: 1px solid #3b82f6;
-        }
-
-        /* LOADING */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #ccc;
-        }
-
-        .spinner {
-            border: 4px solid #333;
-            border-top: 4px solid #ff6b35;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
         /* RESPONSIVO */
         @media (max-width: 1200px) {
             .main-layout {
-                grid-template-columns: 1fr;
-            }
-            
-            .details-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -432,70 +150,28 @@
         @media (max-width: 768px) {
             body { padding: 10px; }
             .titulo-sistema { font-size: 1.8em; }
-            .action-buttons { flex-direction: column; }
+        }
+
+        /* ANIMAÇÕES */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* PRINT STYLES PARA RECIBO */
         @media print {
             body * { visibility: hidden; }
-            .print-receipt, .print-receipt * { visibility: visible; }
-            .print-receipt {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 72mm;
-                font-family: 'Courier New', monospace;
-                font-size: 10px;
-                line-height: 1.2;
-                color: black;
-                background: white;
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                display: block !important;
             }
-        }
-
-        .print-receipt {
-            display: none;
-            width: 72mm;
-            font-family: 'Courier New', monospace;
-            font-size: 10px;
-            line-height: 1.2;
-            color: black;
-            background: white;
-            padding: 5mm;
-        }
-
-        .receipt-header {
-            text-align: center;
-            margin-bottom: 10px;
-            border-bottom: 1px dashed black;
-            padding-bottom: 5px;
-        }
-
-        .receipt-title {
-            font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 2px;
-        }
-
-        .receipt-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2px;
-            word-wrap: break-word;
-        }
-
-        .receipt-total {
-            font-weight: bold;
-            border-top: 1px dashed black;
-            padding-top: 5px;
-            margin-top: 5px;
-        }
-
-        .receipt-footer {
-            text-align: center;
-            margin-top: 10px;
-            border-top: 1px dashed black;
-            padding-top: 5px;
-            font-size: 8px;
+            @page {
+                size: 72mm auto;
+                margin: 0;
+            }
         }
     </style>
 </head>
@@ -538,104 +214,8 @@
             </div>
         </div>
 
-        <!-- PAINEL DE DETALHES -->
-        <div id="details-panel" class="details-panel">
-            <h2 class="panel-title">👤 Detalhes do Participante</h2>
-            
-            <div class="details-grid">
-                <!-- INFORMAÇÕES PESSOAIS -->
-                <div>
-                    <div class="info-section">
-                        <div class="section-title">📋 Informações Pessoais</div>
-                        <div id="personal-info"></div>
-                    </div>
-
-                    <div class="info-section" style="margin-top: 20px;">
-                        <div class="section-title">🏥 Informações de Saúde</div>
-                        <div id="health-info"></div>
-                    </div>
-
-                    <div class="info-section" style="margin-top: 20px;">
-                        <div class="section-title">🎯 Informações do Retiro</div>
-                        <div id="retreat-info"></div>
-                    </div>
-                </div>
-
-                <!-- PAINEL DE PAGAMENTO -->
-                <div class="payment-panel">
-                    <div class="section-title">💰 Gestão de Pagamento</div>
-                    
-                    <div class="payment-summary">
-                        <div class="payment-row">
-                            <span>Valor Total do Retiro:</span>
-                            <span>R$ 520,00</span>
-                        </div>
-                        <div class="payment-row">
-                            <span>Valor Já Pago:</span>
-                            <span id="amount-paid">R$ 0,00</span>
-                        </div>
-                        <div class="payment-row payment-total">
-                            <span>Saldo Restante:</span>
-                            <span id="amount-remaining">R$ 520,00</span>
-                        </div>
-                    </div>
-
-                    <div class="payment-form">
-                        <div class="form-group">
-                            <label for="payment-amount">Valor a Receber:</label>
-                            <input type="text" id="payment-amount" placeholder="0,00">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="payment-method">Forma de Pagamento:</label>
-                            <select id="payment-method">
-                                <option value="">Selecione</option>
-                                <option value="PIX">🏦 Pix</option>
-                                <option value="DINHEIRO">💵 Dinheiro</option>
-                                <option value="CT-DÉBITO">💳 Cartão Débito</option>
-                                <option value="CT-CRÉDITO">💳 Cartão Crédito</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="payment-obs">Observações:</label>
-                            <input type="text" id="payment-obs" placeholder="Observações do pagamento (opcional)">
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button id="process-payment" class="btn-payment btn-process">
-                            💰 Processar Pagamento
-                        </button>
-                        <button id="print-receipt" class="btn-payment btn-print">
-                            🖨️ Imprimir Recibo
-                        </button>
-                        <button id="cancel-selection" class="btn-payment btn-cancel">
-                            ❌ Cancelar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- MENSAGENS -->
-        <div id="message-container"></div>
-    </div>
-
-    <!-- RECIBO PARA IMPRESSÃO -->
-    <div id="print-receipt" class="print-receipt">
-        <div class="receipt-header">
-            <div class="receipt-title">ALVO - UMA IGREJA QUE PENSA</div>
-            <div>O RETIRO 2025</div>
-            <div>RECIBO DE PAGAMENTO</div>
-        </div>
+        <!-- PAINEL DE DETALHES (será criado dinamicamente) -->
         
-        <div id="receipt-content"></div>
-        
-        <div class="receipt-footer">
-            <div>Obrigado pela sua participacao!</div>
-            <div>www.alvo.church</div>
-        </div>
     </div>
 
     <!-- Supabase CDN -->
@@ -663,11 +243,13 @@
             }
         }
 
-        // FUNÇÕES DE BUSCA
+        // FUNÇÃO DE BUSCA MELHORADA
         async function searchParticipants(name) {
+            console.log('🔍 Iniciando busca por:', name);
+            
             try {
-                console.log('🔍 Buscando por:', name);
-                showLoading('Buscando participantes...');
+                const container = document.getElementById('results-container');
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff6b35;"><div style="border: 4px solid #333; border-top: 4px solid #ff6b35; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>Buscando participantes...</div>';
                 
                 const { data, error } = await supabase
                     .from('inscricoes')
@@ -676,73 +258,103 @@
                     .eq('status', 'ATIVO')
                     .order('nome_completo');
 
-                if (error) {
-                    console.error('Erro na consulta:', error);
-                    throw error;
-                }
+                if (error) throw error;
 
                 console.log('📋 Resultados encontrados:', data.length);
-                displaySearchResults(data);
-                updateSearchStatus(data.length + ' participante(s) encontrado(s)');
+                
+                if (data.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">❌ Nenhum participante encontrado<br><small>Tente buscar por parte do nome</small></div>';
+                } else {
+                    container.innerHTML = data.map(participant => {
+                        const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+                        const saldoRestante = 520 - valorPago;
+                        
+                        let statusPagamento = '';
+                        let statusClass = '';
+                        if (valorPago >= 520) {
+                            statusPagamento = '✅ QUITADO';
+                            statusClass = 'style="color: #4ade80; font-weight: bold;"';
+                        } else if (valorPago > 0) {
+                            statusPagamento = `🟡 ENTRADA PAGA (R$ ${participant.valor_pago})`;
+                            statusClass = 'style="color: #fbbf24; font-weight: bold;"';
+                        } else {
+                            statusPagamento = '🔴 PENDENTE PAGAMENTO';
+                            statusClass = 'style="color: #ef4444; font-weight: bold;"';
+                        }
 
+                        const formaPagamentoIcon = {
+                            'PIX': '🏦',
+                            'DINHEIRO': '💵',
+                            'CT-DÉBITO': '💳',
+                            'CT-CRÉDITO': '💳'
+                        };
+
+                        return `
+                            <div class="person-card" onclick="selectParticipant(${participant.id})" style="background: #222; border: 2px solid #333; border-radius: 10px; padding: 20px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#ff6b35'; this.style.background='#333'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='#333'; this.style.background='#222'; this.style.transform='none';">
+                                
+                                <!-- NOME PRINCIPAL -->
+                                <div style="font-size: 1.3em; font-weight: bold; color: #fff; margin-bottom: 8px; text-transform: uppercase;">
+                                    👤 ${participant.nome_completo}
+                                </div>
+                                
+                                <!-- INFORMAÇÕES BÁSICAS -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                    <div style="color: #ccc; font-size: 0.9em;">📱 ${participant.whatsapp}</div>
+                                    <div style="color: #ccc; font-size: 0.9em;">🎯 ${participant.genero} • ${participant.idade} anos</div>
+                                    <div style="color: #ccc; font-size: 0.9em;">🎨 Rede ${participant.cor_rede}</div>
+                                    <div style="color: #ccc; font-size: 0.9em;">👥 ${participant.vai_servir_receber}</div>
+                                </div>
+                                
+                                <!-- STATUS E PAGAMENTO -->
+                                <div style="background: #111; border-radius: 8px; padding: 12px; margin-top: 10px;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em;">
+                                        <div>
+                                            <strong style="color: #ff6b35;">💰 Status:</strong><br>
+                                            <span ${statusClass}>${statusPagamento}</span>
+                                        </div>
+                                        <div>
+                                            <strong style="color: #ff6b35;">💳 Forma:</strong><br>
+                                            <span style="color: #ccc;">${formaPagamentoIcon[participant.forma_pagamento] || '📄'} ${participant.forma_pagamento || 'Não informado'}</span>
+                                        </div>
+                                        <div>
+                                            <strong style="color: #ff6b35;">✅ Pago:</strong><br>
+                                            <span style="color: #4ade80; font-weight: bold;">R$ ${valorPago.toFixed(2).replace('.', ',')}</span>
+                                        </div>
+                                        <div>
+                                            <strong style="color: #ff6b35;">⏳ Pendente:</strong><br>
+                                            <span style="color: ${saldoRestante > 0 ? '#ef4444' : '#4ade80'}; font-weight: bold;">R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- BOTÃO DE AÇÃO -->
+                                <div style="text-align: center; margin-top: 12px;">
+                                    <span style="background: linear-gradient(45deg, #ff6b35, #ff8a5b); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.8em; font-weight: bold; text-transform: uppercase;">
+                                        ${saldoRestante > 0 ? '💰 Receber Pagamento' : '🖨️ Reimprimir Recibo'}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                document.getElementById('search-status').textContent = `${data.length} participante(s) encontrado(s)`;
+                
             } catch (error) {
                 console.error('❌ Erro na busca:', error);
-                showMessage('Erro ao buscar participantes: ' + error.message, 'error');
-                updateSearchStatus('Erro na busca');
-                
-                // Mostrar container vazio em caso de erro
                 document.getElementById('results-container').innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #ff6666;">
-                        Erro na busca: ${error.message}
+                    <div style="background: #660000; color: #ff6666; border: 1px solid #cc0000; padding: 20px; border-radius: 8px; text-align: center;">
+                        <strong>❌ Erro na busca:</strong><br>
+                        ${error.message}
                     </div>
                 `;
             }
         }
 
-        function displaySearchResults(participants) {
-            const container = document.getElementById('results-container');
-            
-            if (participants.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        Nenhum participante encontrado
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = participants.map(participant => {
-                const statusInfo = getStatusInfo(participant);
-                return `
-                    <div class="person-card" onclick="selectParticipant(${participant.id})">
-                        <div class="person-name">${participant.nome_completo}</div>
-                        <div class="person-info">📱 ${participant.whatsapp}</div>
-                        <div class="person-info">🎯 ${participant.genero} • ${participant.idade} anos</div>
-                        <div class="person-info">🎨 Rede ${participant.cor_rede}</div>
-                        <div style="margin-top: 8px;">
-                            <span class="person-status ${statusInfo.class}">${statusInfo.text}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function getStatusInfo(participant) {
-            const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
-            
-            if (valorPago >= 520) {
-                return { class: 'status-quitado', text: 'QUITADO' };
-            } else if (valorPago > 0) {
-                return { class: 'status-entrada', text: `ENTRADA PAGA (R$ ${participant.valor_pago})` };
-            } else {
-                return { class: 'status-pendente', text: 'PENDENTE PAGAMENTO' };
-            }
-        }
-
-        // SELEÇÃO DE PARTICIPANTE
+        // FUNÇÃO PARA SELECIONAR PARTICIPANTE
         async function selectParticipant(participantId) {
             try {
-                console.log('👤 Selecionando participante:', participantId);
+                console.log('👤 Selecionando participante ID:', participantId);
                 
                 const { data, error } = await supabase
                     .from('inscricoes')
@@ -754,90 +366,461 @@
 
                 selectedParticipant = data;
                 
-                // Marcar como selecionado na lista
+                // Marcar como selecionado
                 document.querySelectorAll('.person-card').forEach(card => {
-                    card.classList.remove('selected');
+                    card.style.border = '2px solid #333';
+                    card.style.background = '#222';
                 });
-                event.target.closest('.person-card').classList.add('selected');
+                event.target.closest('.person-card').style.border = '2px solid #ff6b35';
+                event.target.closest('.person-card').style.background = '#2a1810';
                 
-                // Mostrar detalhes
-                displayParticipantDetails(data);
-                document.getElementById('details-panel').style.display = 'block';
+                // Mostrar painel de detalhes
+                showParticipantDetails(data);
                 
-                // Scroll para os detalhes
-                document.getElementById('details-panel').scrollIntoView({ behavior: 'smooth' });
-
             } catch (error) {
                 console.error('❌ Erro ao selecionar participante:', error);
-                showMessage('Erro ao carregar dados do participante', 'error');
+                alert('Erro ao carregar dados do participante');
             }
         }
 
-        function displayParticipantDetails(participant) {
-            // Informações pessoais
-            document.getElementById('personal-info').innerHTML = `
-                <div class="info-item">
-                    <span class="info-label">Nome:</span>
-                    <span class="info-value">${participant.nome_completo}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Gênero:</span>
-                    <span class="info-value">${participant.genero}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Idade:</span>
-                    <span class="info-value">${participant.idade} anos</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">WhatsApp:</span>
-                    <span class="info-value">${participant.whatsapp}</span>
-                </div>
-            `;
+        // FUNÇÃO PARA MOSTRAR DETALHES
+        function showParticipantDetails(participant) {
+            const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+            const saldoRestante = 520 - valorPago;
+            
+            // Determinar datas do retiro
+            let datasRetiro = '';
+            if (participant.genero === 'HOMEM') {
+                datasRetiro = '8, 9 e 10 de Agosto de 2025';
+            } else if (participant.genero === 'MULHER') {
+                datasRetiro = '15, 16 e 17 de Agosto de 2025';
+            }
 
-            // Informações de saúde
-            document.getElementById('health-info').innerHTML = `
-                <div class="info-item">
-                    <span class="info-label">Comorbidade:</span>
-                    <span class="info-value ${participant.comorbidade === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.comorbidade}</span>
-                </div>
-                ${participant.comorbidade === 'SIM' && participant.comorbidade_qual ? `
-                    <div class="info-item">
-                        <span class="info-label">Qual:</span>
-                        <span class="info-value">${participant.comorbidade_qual}</span>
+            const detailsHtml = `
+                <div style="background: #111; border-radius: 15px; padding: 30px; border: 2px solid #333; margin-top: 20px;">
+                    <!-- HEADER -->
+                    <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333;">
+                        <h2 style="color: #ff6b35; font-size: 1.8em; margin-bottom: 10px; text-transform: uppercase;">
+                            👤 ${participant.nome_completo}
+                        </h2>
+                        <div style="color: #ccc; font-size: 1.1em;">
+                            📅 ${datasRetiro}
+                        </div>
                     </div>
-                ` : ''}
-                <div class="info-item">
-                    <span class="info-label">Grávida:</span>
-                    <span class="info-value ${participant.gravida === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.gravida}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Medicação:</span>
-                    <span class="info-value ${participant.medicacao === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.medicacao}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Restrições Alimentares:</span>
-                    <span class="info-value ${participant.restricoes_alimentares === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.restricoes_alimentares}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Alergias:</span>
-                    <span class="info-value ${participant.alergias === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.alergias}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Limitação Locomoção:</span>
-                    <span class="info-value ${participant.limitacao_locomocao === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.limitacao_locomocao}</span>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+                        <!-- INFORMAÇÕES DETALHADAS -->
+                        <div>
+                            <!-- DADOS PESSOAIS -->
+                            <div style="background: #222; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #333;">
+                                <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">📋 DADOS PESSOAIS</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95em;">
+                                    <div><strong style="color: #ccc;">Nome:</strong><br><span style="color: #fff;">${participant.nome_completo}</span></div>
+                                    <div><strong style="color: #ccc;">Gênero:</strong><br><span style="color: #fff;">${participant.genero}</span></div>
+                                    <div><strong style="color: #ccc;">Idade:</strong><br><span style="color: #fff;">${participant.idade} anos</span></div>
+                                    <div><strong style="color: #ccc;">WhatsApp:</strong><br><span style="color: #fff;">${participant.whatsapp}</span></div>
+                                </div>
+                            </div>
+
+                            <!-- INFORMAÇÕES DO RETIRO -->
+                            <div style="background: #222; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #333;">
+                                <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">🎯 INFORMAÇÕES DO RETIRO</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95em;">
+                                    <div><strong style="color: #ccc;">Cor da Rede:</strong><br><span style="color: #fff;">🎨 ${participant.cor_rede}</span></div>
+                                    <div><strong style="color: #ccc;">Tipo:</strong><br><span style="color: #fff;">👥 ${participant.vai_servir_receber}</span></div>
+                                    <div><strong style="color: #ccc;">Data do Retiro:</strong><br><span style="color: #fff;">📅 ${datasRetiro}</span></div>
+                                    <div><strong style="color: #ccc;">Status Geral:</strong><br><span style="color: #4ade80;">✅ ATIVO</span></div>
+                                </div>
+                            </div>
+
+                            <!-- INFORMAÇÕES DE SAÚDE -->
+                            <div style="background: #222; border-radius: 10px; padding: 20px; border: 1px solid #333;">
+                                <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">🏥 INFORMAÇÕES DE SAÚDE</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                                    <div>
+                                        <strong style="color: #ccc;">Comorbidade:</strong><br>
+                                        <span style="color: ${participant.comorbidade === 'SIM' ? '#ef4444' : '#4ade80'};">
+                                            ${participant.comorbidade === 'SIM' ? '⚠️ SIM' : '✅ NÃO'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <strong style="color: #ccc;">Medicação:</strong><br>
+                                        <span style="color: ${participant.medicacao === 'SIM' ? '#ef4444' : '#4ade80'};">
+                                            ${participant.medicacao === 'SIM' ? '💊 SIM' : '✅ NÃO'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <strong style="color: #ccc;">Restrições:</strong><br>
+                                        <span style="color: ${participant.restricoes_alimentares === 'SIM' ? '#ef4444' : '#4ade80'};">
+                                            ${participant.restricoes_alimentares === 'SIM' ? '🚫 SIM' : '✅ NÃO'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PAINEL DE PAGAMENTO -->
+                        <div>
+                            <div style="background: #222; border-radius: 10px; padding: 20px; border: 1px solid #333;">
+                                <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">💰 GESTÃO DE PAGAMENTO</h3>
+                                
+                                <!-- RESUMO FINANCEIRO -->
+                                <div style="background: #333; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #444;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                        <span style="color: #ccc;">Valor Total:</span>
+                                        <span style="color: #fff; font-weight: bold;">R$ 520,00</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                        <span style="color: #ccc;">Já Pago:</span>
+                                        <span style="color: #4ade80; font-weight: bold;">R$ ${valorPago.toFixed(2).replace('.', ',')}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 1.1em; font-weight: bold; border-top: 1px solid #555; padding-top: 8px;">
+                                        <span style="color: #ff6b35;">Saldo Restante:</span>
+                                        <span style="color: ${saldoRestante > 0 ? '#ef4444' : '#4ade80'};">R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
+                                    </div>
+                                </div>
+
+                                <!-- FORMULÁRIO DE PAGAMENTO -->
+                                ${saldoRestante > 0 ? `
+                                <div id="payment-form">
+                                    <div style="margin-bottom: 15px;">
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #fff;">Valor a Receber:</label>
+                                        <input type="text" id="payment-amount" placeholder="${saldoRestante.toFixed(2).replace('.', ',')}" value="${saldoRestante.toFixed(2).replace('.', ',')}" style="width: 100%; padding: 12px; border: 2px solid #333; border-radius: 8px; background: #111; color: #fff; font-size: 16px; font-weight: bold;" oninput="formatCurrency(this)">
+                                    </div>
+
+                                    <div style="margin-bottom: 15px;">
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #fff;">Forma de Pagamento:</label>
+                                        <select id="payment-method" style="width: 100%; padding: 12px; border: 2px solid #333; border-radius: 8px; background: #111; color: #fff; font-size: 14px;">
+                                            <option value="">Selecione a forma</option>
+                                            <option value="PIX">🏦 PIX</option>
+                                            <option value="DINHEIRO">💵 Dinheiro</option>
+                                            <option value="CT-DÉBITO">💳 Cartão Débito</option>
+                                            <option value="CT-CRÉDITO">💳 Cartão Crédito</option>
+                                        </select>
+                                    </div>
+
+                                    <div style="margin-bottom: 20px;">
+                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #fff;">Observações:</label>
+                                        <input type="text" id="payment-obs" placeholder="Observações (opcional)" style="width: 100%; padding: 12px; border: 2px solid #333; border-radius: 8px; background: #111; color: #fff; font-size: 14px;">
+                                    </div>
+
+                                    <div style="display: flex; gap: 10px;">
+                                        <button onclick="processPayment()" style="flex: 1; background: linear-gradient(45deg, #22c55e, #16a34a); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                                            💰 PROCESSAR
+                                        </button>
+                                    </div>
+                                </div>
+                                ` : `
+                                <div style="text-align: center; padding: 20px; background: #1a472a; color: #4ade80; border-radius: 8px; margin-bottom: 15px;">
+                                    <strong>✅ PAGAMENTO QUITADO!</strong><br>
+                                    <small>Participação confirmada</small>
+                                </div>
+                                `}
+
+                                <!-- BOTÕES DE AÇÃO -->
+                                <div style="margin-top: 20px;">
+                                    <button onclick="generateReceipt()" style="width: 100%; background: linear-gradient(45deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                                        🖨️ IMPRIMIR RECIBO
+                                    </button>
+                                    <button onclick="cancelSelection()" style="width: 100%; background: linear-gradient(45deg, #6b7280, #4b5563); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                                        ❌ CANCELAR
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
 
-            // Informações do retiro
-            document.getElementById('retreat-info').innerHTML = `
-                <div class="info-item">
-                    <span class="info-label">Cor da Rede:</span>
-                    <span class="info-value">${participant.cor_rede}</span>
+            // Inserir ou atualizar painel de detalhes
+            let detailsPanel = document.getElementById('participant-details');
+            if (!detailsPanel) {
+                detailsPanel = document.createElement('div');
+                detailsPanel.id = 'participant-details';
+                document.querySelector('.container').appendChild(detailsPanel);
+            }
+            
+            detailsPanel.innerHTML = detailsHtml;
+            detailsPanel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // FUNÇÃO PARA PROCESSAR PAGAMENTO
+        async function processPayment() {
+            if (!selectedParticipant) {
+                alert('Erro: Nenhum participante selecionado');
+                return;
+            }
+
+            const paymentAmount = document.getElementById('payment-amount').value;
+            const paymentMethod = document.getElementById('payment-method').value;
+            const paymentObs = document.getElementById('payment-obs').value;
+
+            if (!paymentAmount || !paymentMethod) {
+                alert('Preencha o valor e selecione a forma de pagamento');
+                return;
+            }
+
+            try {
+                console.log('💰 Processando pagamento...');
+                
+                const valorRecebido = parseFloat(paymentAmount.replace(',', '.'));
+                const valorAnterior = parseFloat(selectedParticipant.valor_pago?.replace(',', '.') || '0');
+                const novoTotal = valorAnterior + valorRecebido;
+
+                // Determinar novo status
+                let novoStatus;
+                if (novoTotal >= 520) {
+                    novoStatus = 'QUITADO';
+                } else if (novoTotal > 0) {
+                    novoStatus = 'ENTRADA-PAGA';
+                } else {
+                    novoStatus = 'PENDENTE';
+                }
+
+                // Atualizar no banco
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        valor_pago: novoTotal.toFixed(2).replace('.', ','),
+                        status_pagamento: novoStatus,
+                        forma_pagamento: paymentMethod,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', selectedParticipant.id)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                // Atualizar dados locais
+                selectedParticipant = data;
+
+                // Mostrar mensagem de sucesso
+                alert(`✅ Pagamento de R$ ${paymentAmount} processado com sucesso!\n\nTotal pago: R$ ${novoTotal.toFixed(2).replace('.', ',')}\nSaldo restante: R$ ${(520 - novoTotal).toFixed(2).replace('.', ',')}`);
+
+                // Atualizar interface
+                showParticipantDetails(data);
+
+                console.log('✅ Pagamento processado com sucesso!');
+
+            } catch (error) {
+                console.error('❌ Erro ao processar pagamento:', error);
+                alert('Erro ao processar pagamento: ' + error.message);
+            }
+        }
+
+        // FUNÇÃO PARA GERAR E IMPRIMIR RECIBO
+        function generateReceipt() {
+            if (!selectedParticipant) {
+                alert('Selecione um participante primeiro');
+                return;
+            }
+
+            console.log('🖨️ Gerando recibo para impressão...');
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR');
+            const timeStr = now.toLocaleTimeString('pt-BR');
+
+            const valorTotal = parseFloat(selectedParticipant.valor_pago?.replace(',', '.') || '0');
+            const saldoRestante = 520 - valorTotal;
+
+            // Determinar datas do retiro
+            let datasRetiro = '';
+            if (selectedParticipant.genero === 'HOMEM') {
+                datasRetiro = '8, 9 e 10 de Agosto';
+            } else if (selectedParticipant.genero === 'MULHER') {
+                datasRetiro = '15, 16 e 17 de Agosto';
+            }
+
+            const formaPagamentoNome = {
+                'PIX': 'PIX',
+                'DINHEIRO': 'Dinheiro',
+                'CT-DÉBITO': 'Cartao Debito',
+                'CT-CRÉDITO': 'Cartao Credito'
+            };
+
+            // Criar elemento de recibo para impressão
+            const receiptHtml = `
+                <div id="receipt-print" style="display: none; width: 72mm; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.2; color: black; background: white; padding: 5mm;">
+                    <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed black; padding-bottom: 5px;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px;">ALVO - UMA IGREJA QUE PENSA</div>
+                        <div>O RETIRO 2025</div>
+                        <div>RECIBO DE PAGAMENTO</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 2px;">Data/Hora: ${dateStr} ${timeStr}</div>
+                    <div style="margin-bottom: 5px;">Participante:</div>
+                    <div style="margin-bottom: 5px; font-weight: bold;">${selectedParticipant.nome_completo}</div>
+                    
+                    <div style="margin-bottom: 2px;">Genero: ${selectedParticipant.genero}</div>
+                    <div style="margin-bottom: 2px;">Idade: ${selectedParticipant.idade} anos</div>
+                    <div style="margin-bottom: 2px;">WhatsApp: ${selectedParticipant.whatsapp}</div>
+                    <div style="margin-bottom: 2px;">Rede: ${selectedParticipant.cor_rede}</div>
+                    <div style="margin-bottom: 2px;">Tipo: ${selectedParticipant.vai_servir_receber}</div>
+                    <div style="margin-bottom: 5px;">Datas: ${datasRetiro}</div>
+                    
+                    <div style="margin: 8px 0; border-top: 1px dashed black; padding-top: 5px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>Valor do Retiro:</span>
+                            <span>R$ 520,00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>Total Pago:</span>
+                            <span>R$ ${valorTotal.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px dashed black; padding-top: 5px; margin-top: 5px;">
+                            <span>Saldo Restante:</span>
+                            <span>R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 2px;">Forma Pagamento: ${formaPagamentoNome[selectedParticipant.forma_pagamento] || selectedParticipant.forma_pagamento}</div>
+                    
+                    ${saldoRestante > 0 ? `
+                        <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
+                            <strong>ATENCAO:</strong><br>
+                            Saldo restante deve ser pago<br>
+                            ate o dia do retiro
+                        </div>
+                    ` : `
+                        <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
+                            <strong>PAGAMENTO QUITADO</strong><br>
+                            Participacao confirmada!
+                        </div>
+                    `}
+                    
+                    <div style="text-align: center; margin-top: 10px; border-top: 1px dashed black; padding-top: 5px; font-size: 8px;">
+                        <div>Obrigado pela sua participacao!</div>
+                        <div>www.alvo.church</div>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <span class="info-label">Tipo:</span>
-                    <span class="info-value">${participant.vai_servir_receber}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Status Pagamento:</span>
-                    <span class="info-value">${participant.status_pagamento}
+            `;
+
+            // Adicionar ao body se não existir
+            let existingReceipt = document.getElementById('receipt-print');
+            if (existingReceipt) {
+                existingReceipt.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', receiptHtml);
+            
+            // Imprimir
+            setTimeout(() => {
+                window.print();
+                alert('📄 Recibo enviado para a impressora!\n\nConfigurações recomendadas:\n• Papel: 72mm (Elgin L42pro)\n• Orientação: Retrato\n• Margens: Mínimas');
+            }, 100);
+        }
+
+        // FUNÇÃO PARA CANCELAR SELEÇÃO
+        function cancelSelection() {
+            selectedParticipant = null;
+            
+            // Remover destaque dos cards
+            document.querySelectorAll('.person-card').forEach(card => {
+                card.style.border = '2px solid #333';
+                card.style.background = '#222';
+            });
+            
+            // Remover painel de detalhes
+            const detailsPanel = document.getElementById('participant-details');
+            if (detailsPanel) {
+                detailsPanel.remove();
+            }
+            
+            console.log('❌ Seleção cancelada');
+        }
+
+        // FUNÇÃO PARA FORMATAR MOEDA
+        function formatCurrency(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 3) {
+                value = value.replace(/(\d+)(\d{2})$/, '$1,$2');
+            }
+            input.value = value;
+        }
+
+        // EVENT LISTENERS
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Carregando sistema de balcão...');
+            
+            if (initializeSupabase()) {
+                console.log('✅ Sistema pronto para uso!');
+            } else {
+                alert('Erro ao conectar com o banco de dados');
+            }
+
+            // Focar no campo de busca
+            document.getElementById('search-name').focus();
+        });
+
+        // Reconectar o botão de busca
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const name = document.getElementById('search-name').value.trim();
+            if (name.length >= 2) {
+                searchParticipants(name);
+            } else {
+                alert('Digite pelo menos 2 caracteres para buscar');
+            }
+        });
+
+        // Permitir busca com Enter
+        document.getElementById('search-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('search-btn').click();
+            }
+        });
+
+        // Converter para maiúscula
+        document.getElementById('search-name').addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        // FUNÇÃO DE TESTE COMPLETA
+        window.testarSistemaCompleto = async function() {
+            console.log('🧪 Testando sistema completo...');
+            
+            try {
+                // Testar conexão
+                const { count, error } = await supabase
+                    .from('inscricoes')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) throw error;
+                
+                console.log('✅ Conexão OK! Total de inscrições:', count);
+                
+                // Buscar exemplos
+                const { data } = await supabase
+                    .from('inscricoes')
+                    .select('nome_completo, genero, valor_pago, status_pagamento')
+                    .limit(3);
+                
+                if (data && data.length > 0) {
+                    console.log('📋 Exemplos no banco de dados:');
+                    data.forEach(p => {
+                        const valorPago = parseFloat(p.valor_pago?.replace(',', '.') || '0');
+                        const saldo = 520 - valorPago;
+                        console.log(`   • ${p.nome_completo} (${p.genero}) - Pago: R$ ${valorPago.toFixed(2)} - Saldo: R$ ${saldo.toFixed(2)}`);
+                    });
+                    console.log('\n💡 Digite qualquer um desses nomes para testar!');
+                }
+                
+                alert(`✅ Sistema funcionando perfeitamente!\n\n📊 Total de inscrições: ${count}\n🔍 Use a busca para encontrar participantes\n💰 Processe pagamentos e imprima recibos`);
+                
+            } catch (error) {
+                console.error('❌ Erro no teste:', error);
+                alert('❌ Erro no sistema: ' + error.message);
+            }
+        };
+
+        console.log('🎯 Sistema de Balcão carregado com sucesso!');
+        console.log('📋 Funcionalidades disponíveis:');
+        console.log('   • Busca detalhada de participantes');
+        console.log('   • Processamento de pagamentos');
+        console.log('   • Impressão de recibos (Elgin L42pro)');
+        console.log('   • Interface responsiva e moderna');
+        console.log('\n💡 Para testar o sistema, execute: testarSistemaCompleto()');
+    </script>
+</body>
+</html>
