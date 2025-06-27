@@ -173,6 +173,36 @@
                 margin: 0;
             }
         }
+
+        /* ESTILOS PARA EDIÇÃO RÁPIDA */
+        .person-card input:focus, .person-card select:focus {
+            outline: 2px solid #ff6b35 !important;
+            background: #333 !important;
+        }
+        
+        .person-card input {
+            transition: all 0.2s ease;
+        }
+        
+        .person-card select {
+            transition: all 0.2s ease;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        #quick-message {
+            animation: slideInRight 0.3s ease;
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -222,7 +252,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
+        // ===================================
         // CONFIGURAÇÕES SUPABASE
+        // ===================================
+        
         const SUPABASE_CONFIG = {
             url: 'https://yuikwufjkdzgdzvlotaq.supabase.co',
             anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aWt3dWZqa2R6Z2R6dmxvdGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5ODcwMzcsImV4cCI6MjA2NjU2MzAzN30.UGW0AHHSsIv842Z92F6RjI930fgS-5FmPX0i7kumgYo'
@@ -231,7 +264,10 @@
         let supabase;
         let selectedParticipant = null;
 
-        // Inicializar cliente Supabase
+        // ===================================
+        // INICIALIZAÇÃO
+        // ===================================
+        
         function initializeSupabase() {
             try {
                 supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
@@ -243,7 +279,10 @@
             }
         }
 
-        // FUNÇÃO DE BUSCA MELHORADA
+        // ===================================
+        // FUNÇÃO DE BUSCA COM EDIÇÃO RÁPIDA
+        // ===================================
+        
         async function searchParticipants(name) {
             console.log('🔍 Iniciando busca por:', name);
             
@@ -275,22 +314,15 @@
                             statusPagamento = '✅ QUITADO';
                             statusClass = 'style="color: #4ade80; font-weight: bold;"';
                         } else if (valorPago > 0) {
-                            statusPagamento = `🟡 ENTRADA PAGA (R$ ${participant.valor_pago})`;
+                            statusPagamento = `🟡 ENTRADA PAGA`;
                             statusClass = 'style="color: #fbbf24; font-weight: bold;"';
                         } else {
                             statusPagamento = '🔴 PENDENTE PAGAMENTO';
                             statusClass = 'style="color: #ef4444; font-weight: bold;"';
                         }
 
-                        const formaPagamentoIcon = {
-                            'PIX': '🏦',
-                            'DINHEIRO': '💵',
-                            'CT-DÉBITO': '💳',
-                            'CT-CRÉDITO': '💳'
-                        };
-
                         return `
-                            <div class="person-card" onclick="selectParticipant(${participant.id})" style="background: #222; border: 2px solid #333; border-radius: 10px; padding: 20px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#ff6b35'; this.style.background='#333'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='#333'; this.style.background='#222'; this.style.transform='none';">
+                            <div class="person-card" id="card-${participant.id}" style="background: #222; border: 2px solid #333; border-radius: 10px; padding: 20px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#ff6b35'; this.style.background='#333'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='#333'; this.style.background='#222'; this.style.transform='none';">
                                 
                                 <!-- NOME PRINCIPAL -->
                                 <div style="font-size: 1.3em; font-weight: bold; color: #fff; margin-bottom: 8px; text-transform: uppercase;">
@@ -305,7 +337,7 @@
                                     <div style="color: #ccc; font-size: 0.9em;">👥 ${participant.vai_servir_receber}</div>
                                 </div>
                                 
-                                <!-- STATUS E PAGAMENTO -->
+                                <!-- STATUS E PAGAMENTO EDITÁVEL -->
                                 <div style="background: #111; border-radius: 8px; padding: 12px; margin-top: 10px;">
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85em;">
                                         <div>
@@ -314,24 +346,36 @@
                                         </div>
                                         <div>
                                             <strong style="color: #ff6b35;">💳 Forma:</strong><br>
-                                            <span style="color: #ccc;">${formaPagamentoIcon[participant.forma_pagamento] || '📄'} ${participant.forma_pagamento || 'Não informado'}</span>
+                                            <select id="forma-${participant.id}" onchange="updatePaymentMethod(${participant.id})" style="background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 0.8em; width: 100%;">
+                                                <option value="PIX" ${participant.forma_pagamento === 'PIX' ? 'selected' : ''}>🏦 PIX</option>
+                                                <option value="DINHEIRO" ${participant.forma_pagamento === 'DINHEIRO' ? 'selected' : ''}>💵 Dinheiro</option>
+                                                <option value="CT-DÉBITO" ${participant.forma_pagamento === 'CT-DÉBITO' ? 'selected' : ''}>💳 Débito</option>
+                                                <option value="CT-CRÉDITO" ${participant.forma_pagamento === 'CT-CRÉDITO' ? 'selected' : ''}>💳 Crédito</option>
+                                            </select>
                                         </div>
                                         <div>
                                             <strong style="color: #ff6b35;">✅ Pago:</strong><br>
-                                            <span style="color: #4ade80; font-weight: bold;">R$ ${valorPago.toFixed(2).replace('.', ',')}</span>
+                                            <input type="text" id="pago-${participant.id}" value="${valorPago.toFixed(2).replace('.', ',')}" onchange="updatePaidAmount(${participant.id})" oninput="formatCurrencyInput(this)" style="background: #222; color: #4ade80; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 0.8em; font-weight: bold; width: 60px;">
                                         </div>
                                         <div>
                                             <strong style="color: #ff6b35;">⏳ Pendente:</strong><br>
-                                            <span style="color: ${saldoRestante > 0 ? '#ef4444' : '#4ade80'}; font-weight: bold;">R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
+                                            <input type="text" id="pendente-${participant.id}" value="${saldoRestante.toFixed(2).replace('.', ',')}" onchange="updatePendingAmount(${participant.id})" oninput="formatCurrencyInput(this)" style="background: #222; color: ${saldoRestante > 0 ? '#ef4444' : '#4ade80'}; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 0.8em; font-weight: bold; width: 60px;">
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <!-- BOTÃO DE AÇÃO -->
+                                <!-- BOTÃO DE AÇÃO PRINCIPAL -->
                                 <div style="text-align: center; margin-top: 12px;">
-                                    <span style="background: linear-gradient(45deg, #ff6b35, #ff8a5b); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.8em; font-weight: bold; text-transform: uppercase;">
-                                        ${saldoRestante > 0 ? '💰 Receber Pagamento' : '🖨️ Reimprimir Recibo'}
-                                    </span>
+                                    <button onclick="processQuickPayment(${participant.id})" style="background: linear-gradient(45deg, #ff6b35, #ff8a5b); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 0.9em; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease; width: 100%;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(255, 107, 53, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+                                        ${saldoRestante > 0 ? '💰 RECEBER PAGAMENTO & IMPRIMIR' : '🖨️ REIMPRIMIR RECIBO'}
+                                    </button>
+                                </div>
+                                
+                                <!-- BOTÃO PARA DETALHES COMPLETOS -->
+                                <div style="text-align: center; margin-top: 8px;">
+                                    <button onclick="selectParticipant(${participant.id})" style="background: #333; color: #ccc; border: 1px solid #555; padding: 6px 12px; border-radius: 15px; font-size: 0.8em; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#333'">
+                                        📋 Ver Detalhes Completos
+                                    </button>
                                 </div>
                             </div>
                         `;
@@ -351,7 +395,364 @@
             }
         }
 
-        // FUNÇÃO PARA SELECIONAR PARTICIPANTE
+        // ===================================
+        // FUNÇÕES DE EDIÇÃO RÁPIDA
+        // ===================================
+        
+        function formatCurrencyInput(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 3) {
+                value = value.replace(/(\d+)(\d{2})$/, '$1,$2');
+            }
+            input.value = value;
+        }
+
+        async function updatePaidAmount(participantId) {
+            try {
+                const newPaidValue = document.getElementById(`pago-${participantId}`).value;
+                const pendingInput = document.getElementById(`pendente-${participantId}`);
+                
+                const paidAmount = parseFloat(newPaidValue.replace(',', '.'));
+                const newPending = 520 - paidAmount;
+                pendingInput.value = newPending.toFixed(2).replace('.', ',');
+                
+                pendingInput.style.color = newPending > 0 ? '#ef4444' : '#4ade80';
+                
+                const { error } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        valor_pago: newPaidValue,
+                        status_pagamento: paidAmount >= 520 ? 'QUITADO' : (paidAmount > 0 ? 'ENTRADA-PAGA' : 'PENDENTE'),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', participantId);
+
+                if (error) throw error;
+                
+                console.log(`✅ Valor pago atualizado para R$ ${newPaidValue}`);
+                showQuickMessage(`💰 Valor pago atualizado: R$ ${newPaidValue}`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Erro ao atualizar valor pago:', error);
+                showQuickMessage('❌ Erro ao atualizar valor pago', 'error');
+            }
+        }
+
+        async function updatePendingAmount(participantId) {
+            try {
+                const newPendingValue = document.getElementById(`pendente-${participantId}`).value;
+                const paidInput = document.getElementById(`pago-${participantId}`);
+                
+                const pendingAmount = parseFloat(newPendingValue.replace(',', '.'));
+                const newPaid = 520 - pendingAmount;
+                paidInput.value = newPaid.toFixed(2).replace('.', ',');
+                
+                const { error } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        valor_pago: newPaid.toFixed(2).replace('.', ','),
+                        status_pagamento: newPaid >= 520 ? 'QUITADO' : (newPaid > 0 ? 'ENTRADA-PAGA' : 'PENDENTE'),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', participantId);
+
+                if (error) throw error;
+                
+                console.log(`✅ Saldo pendente atualizado para R$ ${newPendingValue}`);
+                showQuickMessage(`⏳ Saldo pendente atualizado: R$ ${newPendingValue}`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Erro ao atualizar saldo pendente:', error);
+                showQuickMessage('❌ Erro ao atualizar saldo pendente', 'error');
+            }
+        }
+
+        async function updatePaymentMethod(participantId) {
+            try {
+                const newMethod = document.getElementById(`forma-${participantId}`).value;
+                
+                const { error } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        forma_pagamento: newMethod,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', participantId);
+
+                if (error) throw error;
+                
+                console.log(`✅ Forma de pagamento atualizada para ${newMethod}`);
+                showQuickMessage(`💳 Forma de pagamento: ${newMethod}`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Erro ao atualizar forma de pagamento:', error);
+                showQuickMessage('❌ Erro ao atualizar forma de pagamento', 'error');
+            }
+        }
+
+        // ===================================
+        // PROCESSAMENTO RÁPIDO DE PAGAMENTO
+        // ===================================
+        
+        async function processQuickPayment(participantId) {
+            try {
+                console.log('⚡ Processamento rápido de pagamento...');
+                
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('id', participantId)
+                    .single();
+
+                if (error) throw error;
+
+                const participant = data;
+                const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+                const saldoRestante = 520 - valorPago;
+
+                if (saldoRestante > 0) {
+                    const confirmPayment = confirm(`💰 CONFIRMAR PAGAMENTO?\n\n👤 ${participant.nome_completo}\n💰 Valor a receber: R$ ${saldoRestante.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n✅ Confirmar e imprimir recibo?`);
+                    
+                    if (!confirmPayment) return;
+
+                    const { error: updateError } = await supabase
+                        .from('inscricoes')
+                        .update({
+                            valor_pago: '520,00',
+                            status_pagamento: 'QUITADO',
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', participantId);
+
+                    if (updateError) throw updateError;
+
+                    showQuickMessage(`✅ Pagamento processado! ${participant.nome_completo} - QUITADO`, 'success');
+                    
+                    participant.valor_pago = '520,00';
+                    participant.status_pagamento = 'QUITADO';
+                }
+
+                generateQuickReceipt(participant);
+                
+            } catch (error) {
+                console.error('❌ Erro no processamento rápido:', error);
+                showQuickMessage('❌ Erro no processamento: ' + error.message, 'error');
+            }
+        }
+
+        // ===================================
+        // GERAÇÃO DE RECIBO COM PREVIEW
+        // ===================================
+        
+        function generateQuickReceipt(participant) {
+            console.log('🖨️ Gerando recibo rápido...');
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR');
+            const timeStr = now.toLocaleTimeString('pt-BR');
+
+            const valorTotal = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+            const saldoRestante = 520 - valorTotal;
+
+            let datasRetiro = '';
+            if (participant.genero === 'HOMEM') {
+                datasRetiro = '8, 9 e 10 de Agosto';
+            } else if (participant.genero === 'MULHER') {
+                datasRetiro = '15, 16 e 17 de Agosto';
+            }
+
+            const formaPagamentoNome = {
+                'PIX': 'PIX',
+                'DINHEIRO': 'Dinheiro',
+                'CT-DÉBITO': 'Cartao Debito',
+                'CT-CRÉDITO': 'Cartao Credito'
+            };
+
+            const previewHtml = `
+                <div id="receipt-preview" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; justify-content: center; align-items: center;">
+                    <div style="background: white; color: black; border-radius: 10px; padding: 30px; max-width: 400px; width: 90%;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h2 style="color: #ff6b35; margin-bottom: 10px;">📄 PREVIEW DO RECIBO</h2>
+                            <p style="color: #666; margin-bottom: 20px;">Confira os dados antes de imprimir</p>
+                        </div>
+                        
+                        <div style="border: 2px dashed #ccc; padding: 15px; font-family: 'Courier New', monospace; font-size: 12px; background: #f9f9f9;">
+                            <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed black; padding-bottom: 5px;">
+                                <div style="font-weight: bold; font-size: 14px;">ALVO - UMA IGREJA QUE PENSA</div>
+                                <div>O RETIRO 2025</div>
+                                <div>RECIBO DE PAGAMENTO</div>
+                            </div>
+                            
+                            <div>Data/Hora: ${dateStr} ${timeStr}</div>
+                            <div style="margin: 5px 0; font-weight: bold;">${participant.nome_completo}</div>
+                            <div>Genero: ${participant.genero}</div>
+                            <div>Idade: ${participant.idade} anos</div>
+                            <div>WhatsApp: ${participant.whatsapp}</div>
+                            <div>Rede: ${participant.cor_rede}</div>
+                            <div>Tipo: ${participant.vai_servir_receber}</div>
+                            <div style="margin-bottom: 5px;">Datas: ${datasRetiro}</div>
+                            
+                            <div style="margin: 8px 0; border-top: 1px dashed black; padding-top: 5px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Valor do Retiro:</span>
+                                    <span>R$ 520,00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Total Pago:</span>
+                                    <span>R$ ${valorTotal.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px dashed black; padding-top: 5px;">
+                                    <span>Saldo Restante:</span>
+                                    <span>R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                            </div>
+                            
+                            <div>Forma: ${formaPagamentoNome[participant.forma_pagamento] || participant.forma_pagamento}</div>
+                            
+                            ${saldoRestante > 0 ? `
+                                <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 10px;">
+                                    <strong>ATENCAO:</strong><br>
+                                    Saldo restante deve ser pago ate o dia do retiro
+                                </div>
+                            ` : `
+                                <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 10px;">
+                                    <strong>PAGAMENTO QUITADO</strong><br>
+                                    Participacao confirmada!
+                                </div>
+                            `}
+                            
+                            <div style="text-align: center; margin-top: 10px; border-top: 1px dashed black; padding-top: 5px; font-size: 10px;">
+                                <div>Obrigado pela sua participacao!</div>
+                                <div>www.alvo.church</div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button onclick="confirmPrintReceipt('${btoa(JSON.stringify(participant))}')" style="flex: 1; background: #22c55e; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                🖨️ IMPRIMIR AGORA
+                            </button>
+                            <button onclick="closeReceiptPreview()" style="flex: 1; background: #6b7280; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                ❌ CANCELAR
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', previewHtml);
+        }
+
+        function confirmPrintReceipt(encodedParticipant) {
+            const participant = JSON.parse(atob(encodedParticipant));
+            
+            closeReceiptPreview();
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR');
+            const timeStr = now.toLocaleTimeString('pt-BR');
+
+            const valorTotal = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+            const saldoRestante = 520 - valorTotal;
+
+            let datasRetiro = '';
+            if (participant.genero === 'HOMEM') {
+                datasRetiro = '8, 9 e 10 de Agosto';
+            } else if (participant.genero === 'MULHER') {
+                datasRetiro = '15, 16 e 17 de Agosto';
+            }
+
+            const formaPagamentoNome = {
+                'PIX': 'PIX',
+                'DINHEIRO': 'Dinheiro',
+                'CT-DÉBITO': 'Cartao Debito',
+                'CT-CRÉDITO': 'Cartao Credito'
+            };
+
+            const receiptHtml = `
+                <div id="receipt-print" style="display: none; width: 72mm; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.2; color: black; background: white; padding: 5mm;">
+                    <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed black; padding-bottom: 5px;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px;">ALVO - UMA IGREJA QUE PENSA</div>
+                        <div>O RETIRO 2025</div>
+                        <div>RECIBO DE PAGAMENTO</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 2px;">Data/Hora: ${dateStr} ${timeStr}</div>
+                    <div style="margin-bottom: 5px;">Participante:</div>
+                    <div style="margin-bottom: 5px; font-weight: bold;">${participant.nome_completo}</div>
+                    
+                    <div style="margin-bottom: 2px;">Genero: ${participant.genero}</div>
+                    <div style="margin-bottom: 2px;">Idade: ${participant.idade} anos</div>
+                    <div style="margin-bottom: 2px;">WhatsApp: ${participant.whatsapp}</div>
+                    <div style="margin-bottom: 2px;">Rede: ${participant.cor_rede}</div>
+                    <div style="margin-bottom: 2px;">Tipo: ${participant.vai_servir_receber}</div>
+                    <div style="margin-bottom: 5px;">Datas: ${datasRetiro}</div>
+                    
+                    <div style="margin: 8px 0; border-top: 1px dashed black; padding-top: 5px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>Valor do Retiro:</span>
+                            <span>R$ 520,00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>Total Pago:</span>
+                            <span>R$ ${valorTotal.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px dashed black; padding-top: 5px; margin-top: 5px;">
+                            <span>Saldo Restante:</span>
+                            <span>R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 2px;">Forma Pagamento: ${formaPagamentoNome[participant.forma_pagamento] || participant.forma_pagamento}</div>
+                    
+                    ${saldoRestante > 0 ? `
+                        <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
+                            <strong>ATENCAO:</strong><br>
+                            Saldo restante deve ser pago<br>
+                            ate o dia do retiro
+                        </div>
+                    ` : `
+                        <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
+                            <strong>PAGAMENTO QUITADO</strong><br>
+                            Participacao confirmada!
+                        </div>
+                    `}
+                    
+                    <div style="text-align: center; margin-top: 10px; border-top: 1px dashed black; padding-top: 5px; font-size: 8px;">
+                        <div>Obrigado pela sua participacao!</div>
+                        <div>www.alvo.church</div>
+                    </div>
+                </div>
+            `;
+
+            const existingReceipt = document.getElementById('receipt-print');
+            if (existingReceipt) {
+                existingReceipt.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', receiptHtml);
+            
+            setTimeout(() => {
+                window.print();
+                showQuickMessage('📄 Recibo enviado para impressora Elgin L42pro!', 'success');
+                
+                const searchName = document.getElementById('search-name').value;
+                if (searchName) {
+                    setTimeout(() => searchParticipants(searchName), 1000);
+                }
+            }, 100);
+        }
+
+        function closeReceiptPreview() {
+            const preview = document.getElementById('receipt-preview');
+            if (preview) {
+                preview.remove();
+            }
+        }
+
+        // ===================================
+        // FUNÇÃO PARA SELECIONAR PARTICIPANTE (DETALHES COMPLETOS)
+        // ===================================
+        
         async function selectParticipant(participantId) {
             try {
                 console.log('👤 Selecionando participante ID:', participantId);
@@ -366,15 +767,13 @@
 
                 selectedParticipant = data;
                 
-                // Marcar como selecionado
                 document.querySelectorAll('.person-card').forEach(card => {
                     card.style.border = '2px solid #333';
                     card.style.background = '#222';
                 });
-                event.target.closest('.person-card').style.border = '2px solid #ff6b35';
-                event.target.closest('.person-card').style.background = '#2a1810';
+                document.getElementById(`card-${participantId}`).style.border = '2px solid #ff6b35';
+                document.getElementById(`card-${participantId}`).style.background = '#2a1810';
                 
-                // Mostrar painel de detalhes
                 showParticipantDetails(data);
                 
             } catch (error) {
@@ -383,12 +782,10 @@
             }
         }
 
-        // FUNÇÃO PARA MOSTRAR DETALHES
         function showParticipantDetails(participant) {
             const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
             const saldoRestante = 520 - valorPago;
             
-            // Determinar datas do retiro
             let datasRetiro = '';
             if (participant.genero === 'HOMEM') {
                 datasRetiro = '8, 9 e 10 de Agosto de 2025';
@@ -398,7 +795,6 @@
 
             const detailsHtml = `
                 <div style="background: #111; border-radius: 15px; padding: 30px; border: 2px solid #333; margin-top: 20px;">
-                    <!-- HEADER -->
                     <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333;">
                         <h2 style="color: #ff6b35; font-size: 1.8em; margin-bottom: 10px; text-transform: uppercase;">
                             👤 ${participant.nome_completo}
@@ -409,9 +805,7 @@
                     </div>
 
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
-                        <!-- INFORMAÇÕES DETALHADAS -->
                         <div>
-                            <!-- DADOS PESSOAIS -->
                             <div style="background: #222; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #333;">
                                 <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">📋 DADOS PESSOAIS</h3>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95em;">
@@ -422,7 +816,6 @@
                                 </div>
                             </div>
 
-                            <!-- INFORMAÇÕES DO RETIRO -->
                             <div style="background: #222; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #333;">
                                 <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">🎯 INFORMAÇÕES DO RETIRO</h3>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95em;">
@@ -433,7 +826,6 @@
                                 </div>
                             </div>
 
-                            <!-- INFORMAÇÕES DE SAÚDE -->
                             <div style="background: #222; border-radius: 10px; padding: 20px; border: 1px solid #333;">
                                 <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">🏥 INFORMAÇÕES DE SAÚDE</h3>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
@@ -459,12 +851,10 @@
                             </div>
                         </div>
 
-                        <!-- PAINEL DE PAGAMENTO -->
                         <div>
                             <div style="background: #222; border-radius: 10px; padding: 20px; border: 1px solid #333;">
-                                <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">💰 GESTÃO DE PAGAMENTO</h3>
+                                <h3 style="color: #ff6b35; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 8px;">💰 RESUMO FINANCEIRO</h3>
                                 
-                                <!-- RESUMO FINANCEIRO -->
                                 <div style="background: #333; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #444;">
                                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                                         <span style="color: #ccc;">Valor Total:</span>
@@ -480,50 +870,12 @@
                                     </div>
                                 </div>
 
-                                <!-- FORMULÁRIO DE PAGAMENTO -->
-                                ${saldoRestante > 0 ? `
-                                <div id="payment-form">
-                                    <div style="margin-bottom: 15px;">
-                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #fff;">Valor a Receber:</label>
-                                        <input type="text" id="payment-amount" placeholder="${saldoRestante.toFixed(2).replace('.', ',')}" value="${saldoRestante.toFixed(2).replace('.', ',')}" style="width: 100%; padding: 12px; border: 2px solid #333; border-radius: 8px; background: #111; color: #fff; font-size: 16px; font-weight: bold;" oninput="formatCurrency(this)">
-                                    </div>
-
-                                    <div style="margin-bottom: 15px;">
-                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #fff;">Forma de Pagamento:</label>
-                                        <select id="payment-method" style="width: 100%; padding: 12px; border: 2px solid #333; border-radius: 8px; background: #111; color: #fff; font-size: 14px;">
-                                            <option value="">Selecione a forma</option>
-                                            <option value="PIX">🏦 PIX</option>
-                                            <option value="DINHEIRO">💵 Dinheiro</option>
-                                            <option value="CT-DÉBITO">💳 Cartão Débito</option>
-                                            <option value="CT-CRÉDITO">💳 Cartão Crédito</option>
-                                        </select>
-                                    </div>
-
-                                    <div style="margin-bottom: 20px;">
-                                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #fff;">Observações:</label>
-                                        <input type="text" id="payment-obs" placeholder="Observações (opcional)" style="width: 100%; padding: 12px; border: 2px solid #333; border-radius: 8px; background: #111; color: #fff; font-size: 14px;">
-                                    </div>
-
-                                    <div style="display: flex; gap: 10px;">
-                                        <button onclick="processPayment()" style="flex: 1; background: linear-gradient(45deg, #22c55e, #16a34a); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                                            💰 PROCESSAR
-                                        </button>
-                                    </div>
-                                </div>
-                                ` : `
-                                <div style="text-align: center; padding: 20px; background: #1a472a; color: #4ade80; border-radius: 8px; margin-bottom: 15px;">
-                                    <strong>✅ PAGAMENTO QUITADO!</strong><br>
-                                    <small>Participação confirmada</small>
-                                </div>
-                                `}
-
-                                <!-- BOTÕES DE AÇÃO -->
                                 <div style="margin-top: 20px;">
-                                    <button onclick="generateReceipt()" style="width: 100%; background: linear-gradient(45deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                                    <button onclick="generateQuickReceipt(${JSON.stringify(participant).replace(/"/g, '&quot;')})" style="width: 100%; background: linear-gradient(45deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                                         🖨️ IMPRIMIR RECIBO
                                     </button>
                                     <button onclick="cancelSelection()" style="width: 100%; background: linear-gradient(45deg, #6b7280, #4b5563); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                                        ❌ CANCELAR
+                                        ❌ FECHAR DETALHES
                                     </button>
                                 </div>
                             </div>
@@ -532,7 +884,6 @@
                 </div>
             `;
 
-            // Inserir ou atualizar painel de detalhes
             let detailsPanel = document.getElementById('participant-details');
             if (!detailsPanel) {
                 detailsPanel = document.createElement('div');
@@ -544,185 +895,14 @@
             detailsPanel.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // FUNÇÃO PARA PROCESSAR PAGAMENTO
-        async function processPayment() {
-            if (!selectedParticipant) {
-                alert('Erro: Nenhum participante selecionado');
-                return;
-            }
-
-            const paymentAmount = document.getElementById('payment-amount').value;
-            const paymentMethod = document.getElementById('payment-method').value;
-            const paymentObs = document.getElementById('payment-obs').value;
-
-            if (!paymentAmount || !paymentMethod) {
-                alert('Preencha o valor e selecione a forma de pagamento');
-                return;
-            }
-
-            try {
-                console.log('💰 Processando pagamento...');
-                
-                const valorRecebido = parseFloat(paymentAmount.replace(',', '.'));
-                const valorAnterior = parseFloat(selectedParticipant.valor_pago?.replace(',', '.') || '0');
-                const novoTotal = valorAnterior + valorRecebido;
-
-                // Determinar novo status
-                let novoStatus;
-                if (novoTotal >= 520) {
-                    novoStatus = 'QUITADO';
-                } else if (novoTotal > 0) {
-                    novoStatus = 'ENTRADA-PAGA';
-                } else {
-                    novoStatus = 'PENDENTE';
-                }
-
-                // Atualizar no banco
-                const { data, error } = await supabase
-                    .from('inscricoes')
-                    .update({
-                        valor_pago: novoTotal.toFixed(2).replace('.', ','),
-                        status_pagamento: novoStatus,
-                        forma_pagamento: paymentMethod,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', selectedParticipant.id)
-                    .select()
-                    .single();
-
-                if (error) throw error;
-
-                // Atualizar dados locais
-                selectedParticipant = data;
-
-                // Mostrar mensagem de sucesso
-                alert(`✅ Pagamento de R$ ${paymentAmount} processado com sucesso!\n\nTotal pago: R$ ${novoTotal.toFixed(2).replace('.', ',')}\nSaldo restante: R$ ${(520 - novoTotal).toFixed(2).replace('.', ',')}`);
-
-                // Atualizar interface
-                showParticipantDetails(data);
-
-                console.log('✅ Pagamento processado com sucesso!');
-
-            } catch (error) {
-                console.error('❌ Erro ao processar pagamento:', error);
-                alert('Erro ao processar pagamento: ' + error.message);
-            }
-        }
-
-        // FUNÇÃO PARA GERAR E IMPRIMIR RECIBO
-        function generateReceipt() {
-            if (!selectedParticipant) {
-                alert('Selecione um participante primeiro');
-                return;
-            }
-
-            console.log('🖨️ Gerando recibo para impressão...');
-
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('pt-BR');
-            const timeStr = now.toLocaleTimeString('pt-BR');
-
-            const valorTotal = parseFloat(selectedParticipant.valor_pago?.replace(',', '.') || '0');
-            const saldoRestante = 520 - valorTotal;
-
-            // Determinar datas do retiro
-            let datasRetiro = '';
-            if (selectedParticipant.genero === 'HOMEM') {
-                datasRetiro = '8, 9 e 10 de Agosto';
-            } else if (selectedParticipant.genero === 'MULHER') {
-                datasRetiro = '15, 16 e 17 de Agosto';
-            }
-
-            const formaPagamentoNome = {
-                'PIX': 'PIX',
-                'DINHEIRO': 'Dinheiro',
-                'CT-DÉBITO': 'Cartao Debito',
-                'CT-CRÉDITO': 'Cartao Credito'
-            };
-
-            // Criar elemento de recibo para impressão
-            const receiptHtml = `
-                <div id="receipt-print" style="display: none; width: 72mm; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.2; color: black; background: white; padding: 5mm;">
-                    <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed black; padding-bottom: 5px;">
-                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px;">ALVO - UMA IGREJA QUE PENSA</div>
-                        <div>O RETIRO 2025</div>
-                        <div>RECIBO DE PAGAMENTO</div>
-                    </div>
-                    
-                    <div style="margin-bottom: 2px;">Data/Hora: ${dateStr} ${timeStr}</div>
-                    <div style="margin-bottom: 5px;">Participante:</div>
-                    <div style="margin-bottom: 5px; font-weight: bold;">${selectedParticipant.nome_completo}</div>
-                    
-                    <div style="margin-bottom: 2px;">Genero: ${selectedParticipant.genero}</div>
-                    <div style="margin-bottom: 2px;">Idade: ${selectedParticipant.idade} anos</div>
-                    <div style="margin-bottom: 2px;">WhatsApp: ${selectedParticipant.whatsapp}</div>
-                    <div style="margin-bottom: 2px;">Rede: ${selectedParticipant.cor_rede}</div>
-                    <div style="margin-bottom: 2px;">Tipo: ${selectedParticipant.vai_servir_receber}</div>
-                    <div style="margin-bottom: 5px;">Datas: ${datasRetiro}</div>
-                    
-                    <div style="margin: 8px 0; border-top: 1px dashed black; padding-top: 5px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-                            <span>Valor do Retiro:</span>
-                            <span>R$ 520,00</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-                            <span>Total Pago:</span>
-                            <span>R$ ${valorTotal.toFixed(2).replace('.', ',')}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px dashed black; padding-top: 5px; margin-top: 5px;">
-                            <span>Saldo Restante:</span>
-                            <span>R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 2px;">Forma Pagamento: ${formaPagamentoNome[selectedParticipant.forma_pagamento] || selectedParticipant.forma_pagamento}</div>
-                    
-                    ${saldoRestante > 0 ? `
-                        <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
-                            <strong>ATENCAO:</strong><br>
-                            Saldo restante deve ser pago<br>
-                            ate o dia do retiro
-                        </div>
-                    ` : `
-                        <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
-                            <strong>PAGAMENTO QUITADO</strong><br>
-                            Participacao confirmada!
-                        </div>
-                    `}
-                    
-                    <div style="text-align: center; margin-top: 10px; border-top: 1px dashed black; padding-top: 5px; font-size: 8px;">
-                        <div>Obrigado pela sua participacao!</div>
-                        <div>www.alvo.church</div>
-                    </div>
-                </div>
-            `;
-
-            // Adicionar ao body se não existir
-            let existingReceipt = document.getElementById('receipt-print');
-            if (existingReceipt) {
-                existingReceipt.remove();
-            }
-            
-            document.body.insertAdjacentHTML('beforeend', receiptHtml);
-            
-            // Imprimir
-            setTimeout(() => {
-                window.print();
-                alert('📄 Recibo enviado para a impressora!\n\nConfigurações recomendadas:\n• Papel: 72mm (Elgin L42pro)\n• Orientação: Retrato\n• Margens: Mínimas');
-            }, 100);
-        }
-
-        // FUNÇÃO PARA CANCELAR SELEÇÃO
         function cancelSelection() {
             selectedParticipant = null;
             
-            // Remover destaque dos cards
             document.querySelectorAll('.person-card').forEach(card => {
                 card.style.border = '2px solid #333';
                 card.style.background = '#222';
             });
             
-            // Remover painel de detalhes
             const detailsPanel = document.getElementById('participant-details');
             if (detailsPanel) {
                 detailsPanel.remove();
@@ -731,30 +911,50 @@
             console.log('❌ Seleção cancelada');
         }
 
-        // FUNÇÃO PARA FORMATAR MOEDA
-        function formatCurrency(input) {
-            let value = input.value.replace(/\D/g, '');
-            if (value.length >= 3) {
-                value = value.replace(/(\d+)(\d{2})$/, '$1,$2');
+        // ===================================
+        // FUNÇÃO PARA MOSTRAR MENSAGENS RÁPIDAS
+        // ===================================
+        
+        function showQuickMessage(message, type) {
+            const messageHtml = `
+                <div id="quick-message" style="position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 15px 20px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); ${type === 'success' ? 'background: #22c55e; color: white;' : 'background: #ef4444; color: white;'}">
+                    ${message}
+                </div>
+            `;
+            
+            const existingMessage = document.getElementById('quick-message');
+            if (existingMessage) {
+                existingMessage.remove();
             }
-            input.value = value;
+            
+            document.body.insertAdjacentHTML('beforeend', messageHtml);
+            
+            setTimeout(() => {
+                const messageEl = document.getElementById('quick-message');
+                if (messageEl) {
+                    messageEl.style.opacity = '0';
+                    messageEl.style.transform = 'translateX(100%)';
+                    setTimeout(() => messageEl.remove(), 300);
+                }
+            }, 3000);
         }
 
+        // ===================================
         // EVENT LISTENERS
+        // ===================================
+        
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Carregando sistema de balcão...');
+            console.log('🚀 Sistema de Balcão com Edição Rápida carregado!');
             
             if (initializeSupabase()) {
-                console.log('✅ Sistema pronto para uso!');
+                console.log('✅ Sistema pronto para uso com edição rápida!');
             } else {
                 alert('Erro ao conectar com o banco de dados');
             }
 
-            // Focar no campo de busca
             document.getElementById('search-name').focus();
         });
 
-        // Reconectar o botão de busca
         document.getElementById('search-btn').addEventListener('click', function() {
             const name = document.getElementById('search-name').value.trim();
             if (name.length >= 2) {
@@ -764,24 +964,24 @@
             }
         });
 
-        // Permitir busca com Enter
         document.getElementById('search-name').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 document.getElementById('search-btn').click();
             }
         });
 
-        // Converter para maiúscula
         document.getElementById('search-name').addEventListener('input', function() {
             this.value = this.value.toUpperCase();
         });
 
-        // FUNÇÃO DE TESTE COMPLETA
-        window.testarSistemaCompleto = async function() {
-            console.log('🧪 Testando sistema completo...');
+        // ===================================
+        // FUNÇÃO DE TESTE
+        // ===================================
+        
+        window.testarSistemaRapido = async function() {
+            console.log('🧪 Testando sistema com edição rápida...');
             
             try {
-                // Testar conexão
                 const { count, error } = await supabase
                     .from('inscricoes')
                     .select('*', { count: 'exact', head: true });
@@ -790,7 +990,6 @@
                 
                 console.log('✅ Conexão OK! Total de inscrições:', count);
                 
-                // Buscar exemplos
                 const { data } = await supabase
                     .from('inscricoes')
                     .select('nome_completo, genero, valor_pago, status_pagamento')
@@ -803,10 +1002,9 @@
                         const saldo = 520 - valorPago;
                         console.log(`   • ${p.nome_completo} (${p.genero}) - Pago: R$ ${valorPago.toFixed(2)} - Saldo: R$ ${saldo.toFixed(2)}`);
                     });
-                    console.log('\n💡 Digite qualquer um desses nomes para testar!');
                 }
                 
-                alert(`✅ Sistema funcionando perfeitamente!\n\n📊 Total de inscrições: ${count}\n🔍 Use a busca para encontrar participantes\n💰 Processe pagamentos e imprima recibos`);
+                alert(`✅ Sistema com Edição Rápida funcionando!\n\n📊 Total: ${count} inscrições\n\n🆕 NOVIDADES:\n✏️ Edição direta nos cards\n⚡ Processamento rápido\n🖨️ Preview de recibos\n💰 Atualização em tempo real`);
                 
             } catch (error) {
                 console.error('❌ Erro no teste:', error);
@@ -814,13 +1012,14 @@
             }
         };
 
-        console.log('🎯 Sistema de Balcão carregado com sucesso!');
-        console.log('📋 Funcionalidades disponíveis:');
-        console.log('   • Busca detalhada de participantes');
-        console.log('   • Processamento de pagamentos');
-        console.log('   • Impressão de recibos (Elgin L42pro)');
-        console.log('   • Interface responsiva e moderna');
-        console.log('\n💡 Para testar o sistema, execute: testarSistemaCompleto()');
+        console.log('🎯 Sistema de Balcão com Edição Rápida carregado!');
+        console.log('📋 NOVAS funcionalidades:');
+        console.log('   ✏️ Edição direta dos valores nos cards');
+        console.log('   ⚡ Processamento rápido de pagamentos');
+        console.log('   🖨️ Preview de recibos antes da impressão');
+        console.log('   💰 Atualização automática no banco de dados');
+        console.log('   📱 Interface otimizada para o balcão');
+        console.log('\n💡 Para testar: testarSistemaRapido()');
     </script>
 </body>
 </html>
