@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Balcão - O Retiro 2025</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a1a1a, #2d2d2d); min-height: 100vh; color: white; padding: 20px; }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* HEADER */
+        .header { 
+            background: #000; 
+            padding: 20px 30px; 
+            text-align: center; 
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px solid #333;
+        }
+        
+        .church-name {
+            font-size: 1.2em;
+            color: #fff;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .titulo-sistema { 
+            font-size: 2.5em; 
+            color: #ff6b35; 
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle-sistema { 
+            font-size: 1em; 
+            color: #ccc;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* LAYOUT PRINCIPAL */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        /* PAINEL DE BUSCA */
+        .search-panel {
+            background: #111;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #333;
+        }
+
+        .panel-title {
+            color: #ff6b35;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .search-group {
+            margin-bottom: 20px;
+        }
+
+        .search-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #fff;
+            font-size: 1.1em;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #222;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #ff6b35;
+            background: #333;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .search-btn {
+            background: linear-gradient(45deg, #ff6b35 0%, #ff8a5b 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 53, 0.3);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* PAINEL DE RESULTADOS */
+        .results-panel {
+            background: #111;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #333;
+        }
+
+        .results-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .person-card {
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .person-card:hover {
+            border-color: #ff6b35;
+            background: #333;
+            transform: translateY(-2px);
+        }
+
+        .person-card.selected {
+            border-color: #ff6b35;
+            background: #2a1810;
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
+        }
+
+        .person-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .person-info {
+            color: #ccc;
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+
+        .person-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-pendente {
+            background: #660000;
+            color: #ff6666;
+        }
+
+        .status-entrada {
+            background: #664400;
+            color: #ffaa00;
+        }
+
+        .status-quitado {
+            background: #006600;
+            color: #66ff66;
+        }
+
+        /* PAINEL DE DETALHES */
+        .details-panel {
+            background: #111;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #333;
+            grid-column: 1 / -1;
+            display: none;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+
+        .info-section {
+            background: #222;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+
+        .section-title {
+            color: #ff6b35;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
+            text-transform: uppercase;
+        }
+
+        .info-item {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #ccc;
+            min-width: 140px;
+        }
+
+        .info-value {
+            color: #fff;
+            text-align: right;
+            flex: 1;
+        }
+
+        .highlight-sim {
+            color: #ff6b35;
+            font-weight: bold;
+        }
+
+        .highlight-nao {
+            color: #4ade80;
+        }
+
+        /* PAINEL DE PAGAMENTO */
+        .payment-panel {
+            background: #222;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+
+        .payment-summary {
+            background: #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #444;
+        }
+
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .payment-total {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ff6b35;
+            border-top: 1px solid #555;
+            padding-top: 8px;
+        }
+
+        .payment-form {
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            background: #111;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #ff6b35;
+            background: #222;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-payment {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-process {
+            background: linear-gradient(45deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+
+        .btn-process:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-print {
+            background: linear-gradient(45deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+
+        .btn-print:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-cancel {
+            background: linear-gradient(45deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(107, 114, 128, 0.3);
+        }
+
+        /* MENSAGENS */
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .message-success {
+            background: #1a472a;
+            color: #4ade80;
+            border: 1px solid #16a34a;
+        }
+
+        .message-error {
+            background: #660000;
+            color: #ff6666;
+            border: 1px solid #cc0000;
+        }
+
+        .message-info {
+            background: #1a1a2e;
+            color: #60a5fa;
+            border: 1px solid #3b82f6;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ccc;
+        }
+
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #ff6b35;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVO */
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .titulo-sistema { font-size: 1.8em; }
+            .action-buttons { flex-direction: column; }
+        }
+
+        /* PRINT STYLES PARA RECIBO */
+        @media print {
+            body * { visibility: hidden; }
+            .print-receipt, .print-receipt * { visibility: visible; }
+            .print-receipt {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 72mm; /* Largura da Elgin L42pro */
+                font-family: 'Courier New', monospace;
+                font-size: 10px;
+                line-height: 1.2;
+                color: black;
+                background: white;
+            }
+        }
+
+        .print-receipt {
+            display: none;
+            width: 72mm;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            line-height: 1.2;
+            color: black;
+            background: white;
+            padding: 5mm;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed black;
+            padding-bottom: 5px;
+        }
+
+        .receipt-title {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+            word-wrap: break-word;
+        }
+
+        .receipt-total {
+            font-weight: bold;
+            border-top: 1px dashed black;
+            padding-top: 5px;
+            margin-top: 5px;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            margin-top: 10px;
+            border-top: 1px dashed black;
+            padding-top: 5px;
+            font-size: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="church-name">ALVO - UMA IGREJA QUE PENSA</div>
+            <h1 class="titulo-sistema">SISTEMA DE BALCÃO</h1>
+            <div class="subtitle-sistema">O RETIRO • GESTÃO DE PAGAMENTOS</div>
+        </div>
+
+        <div class="main-layout">
+            <!-- PAINEL DE BUSCA -->
+            <div class="search-panel">
+                <h2 class="panel-title">🔍 Buscar Participante</h2>
+                
+                <div class="search-group">
+                    <label for="search-name">Nome do Participante:</label>
+                    <input type="text" id="search-name" class="search-input" placeholder="Digite o nome para buscar...">
+                </div>
+                
+                <button id="search-btn" class="search-btn">
+                    🔍 Buscar Participante
+                </button>
+                
+                <div id="search-status" style="margin-top: 15px; text-align: center; color: #ccc;">
+                    Digite o nome e clique em buscar
+                </div>
+            </div>
+
+            <!-- PAINEL DE RESULTADOS -->
+            <div class="results-panel">
+                <h2 class="panel-title">📋 Resultados da Busca</h2>
+                
+                <div id="results-container">
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        Nenhuma busca realizada ainda
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAINEL DE DETALHES -->
+        <div id="details-panel" class="details-panel">
+            <h2 class="panel-title">👤 Detalhes do Participante</h2>
+            
+            <div class="details-grid">
+                <!-- INFORMAÇÕES PESSOAIS -->
+                <div>
+                    <div class="info-section">
+                        <div class="section-title">📋 Informações Pessoais</div>
+                        <div id="personal-info"></div>
+                    </div>
+
+                    <div class="info-section" style="margin-top: 20px;">
+                        <div class="section-title">🏥 Informações de Saúde</div>
+                        <div id="health-info"></div>
+                    </div>
+
+                    <div class="info-section" style="margin-top: 20px;">
+                        <div class="section-title">🎯 Informações do Retiro</div>
+                        <div id="retreat-info"></div>
+                    </div>
+                </div>
+
+                <!-- PAINEL DE PAGAMENTO -->
+                <div class="payment-panel">
+                    <div class="section-title">💰 Gestão de Pagamento</div>
+                    
+                    <div class="payment-summary">
+                        <div class="payment-row">
+                            <span>Valor Total do Retiro:</span>
+                            <span>R$ 520,00</span>
+                        </div>
+                        <div class="payment-row">
+                            <span>Valor Já Pago:</span>
+                            <span id="amount-paid">R$ 0,00</span>
+                        </div>
+                        <div class="payment-row payment-total">
+                            <span>Saldo Restante:</span>
+                            <span id="amount-remaining">R$ 520,00</span>
+                        </div>
+                    </div>
+
+                    <div class="payment-form">
+                        <div class="form-group">
+                            <label for="payment-amount">Valor a Receber:</label>
+                            <input type="text" id="payment-amount" placeholder="0,00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="payment-method">Forma de Pagamento:</label>
+                            <select id="payment-method">
+                                <option value="">Selecione</option>
+                                <option value="PIX">🏦 Pix</option>
+                                <option value="DINHEIRO">💵 Dinheiro</option>
+                                <option value="CT-DÉBITO">💳 Cartão Débito</option>
+                                <option value="CT-CRÉDITO">💳 Cartão Crédito</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="payment-obs">Observações:</label>
+                            <input type="text" id="payment-obs" placeholder="Observações do pagamento (opcional)">
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="process-payment" class="btn-payment btn-process">
+                            💰 Processar Pagamento
+                        </button>
+                        <button id="print-receipt" class="btn-payment btn-print">
+                            🖨️ Imprimir Recibo
+                        </button>
+                        <button id="cancel-selection" class="btn-payment btn-cancel">
+                            ❌ Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENSAGENS -->
+        <div id="message-container"></div>
+    </div>
+
+    <!-- RECIBO PARA IMPRESSÃO -->
+    <div id="print-receipt" class="print-receipt">
+        <div class="receipt-header">
+            <div class="receipt-title">ALVO - UMA IGREJA QUE PENSA</div>
+            <div>O RETIRO 2025</div>
+            <div>RECIBO DE PAGAMENTO</div>
+        </div>
+        
+        <div id="receipt-content"></div>
+        
+        <div class="receipt-footer">
+            <div>Obrigado pela sua participacao!</div>
+            <div>www.alvo.church</div>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // ===================================
+        // CONFIGURAÇÕES SUPABASE
+        // ===================================
+        
+        const SUPABASE_CONFIG = {
+            url: 'https://yuikwufjkdzgdzvlotaq.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aWt3dWZqa2R6Z2R6dmxvdGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5ODcwMzcsImV4cCI6MjA2NjU2MzAzN30.UGW0AHHSsIv842Z92F6RjI930fgS-5FmPX0i7kumgYo'
+        };
+
+        let supabase;
+        let selectedParticipant = null;
+
+        // Inicializar cliente Supabase
+        function initializeSupabase() {
+            supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+            console.log('🎯 Supabase inicializado!');
+        }
+
+        // ===================================
+        // FUNÇÕES DE BUSCA
+        // ===================================
+        
+        async function searchParticipants(name) {
+            try {
+                showLoading('Buscando participantes...');
+                
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .ilike('nome_completo', `%${name}%`)
+                    .eq('status', 'ATIVO')
+                    .order('nome_completo');
+
+                if (error) throw error;
+
+                displaySearchResults(data);
+                updateSearchStatus(`${data.length} participante(s) encontrado(s)`);
+
+            } catch (error) {
+                console.error('Erro na busca:', error);
+                showMessage('Erro ao buscar participantes: ' + error.message, 'error');
+                updateSearchStatus('Erro na busca');
+            }
+        }
+
+        function displaySearchResults(participants) {
+            const container = document.getElementById('results-container');
+            
+            if (participants.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        Nenhum participante encontrado
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = participants.map(participant => {
+                const statusInfo = getStatusInfo(participant);
+                return `
+                    <div class="person-card" onclick="selectParticipant(${participant.id})">
+                        <div class="person-name">${participant.nome_completo}</div>
+                        <div class="person-info">📱 ${participant.whatsapp}</div>
+                        <div class="person-info">🎯 ${participant.genero} • ${participant.idade} anos</div>
+                        <div class="person-info">🎨 Rede ${participant.cor_rede}</div>
+                        <div style="margin-top: 8px;">
+                            <span class="person-status ${statusInfo.class}">${statusInfo.text}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusInfo(participant) {
+            const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+            
+            if (valorPago >= 520) {
+                return { class: 'status-quitado', text: 'QUITADO' };
+            } else if (valorPago > 0) {
+                return { class: 'status-entrada', text: `ENTRADA PAGA (R$ ${participant.valor_pago})` };
+            } else {
+                return { class: 'status-pendente', text: 'PENDENTE PAGAMENTO' };
+            }
+        }
+
+        // ===================================
+        // SELEÇÃO DE PARTICIPANTE
+        // ===================================
+        
+        async function selectParticipant(participantId) {
+            try {
+                // Buscar dados completos do participante
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('id', participantId)
+                    .single();
+
+                if (error) throw error;
+
+                selectedParticipant = data;
+                
+                // Marcar como selecionado na lista
+                document.querySelectorAll('.person-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                event.target.closest('.person-card').classList.add('selected');
+                
+                // Mostrar detalhes
+                displayParticipantDetails(data);
+                document.getElementById('details-panel').style.display = 'block';
+                
+                // Scroll para os detalhes
+                document.getElementById('details-panel').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Erro ao selecionar participante:', error);
+                showMessage('Erro ao carregar dados do participante', 'error');
+            }
+        }
+
+        function displayParticipantDetails(participant) {
+            // Informações pessoais
+            document.getElementById('personal-info').innerHTML = `
+                <div class="info-item">
+                    <span class="info-label">Nome:</span>
+                    <span class="info-value">${participant.nome_completo}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Gênero:</span>
+                    <span class="info-value">${participant.genero}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Idade:</span>
+                    <span class="info-value">${participant.idade} anos</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">WhatsApp:</span>
+                    <span class="info-value">${participant.whatsapp}</span>
+                </div>
+            `;
+
+            // Informações de saúde
+            document.getElementById('health-info').innerHTML = `
+                <div class="info-item">
+                    <span class="info-label">Comorbidade:</span>
+                    <span class="info-value ${participant.comorbidade === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.comorbidade}</span>
+                </div>
+                ${participant.comorbidade === 'SIM' ? `
+                    <div class="info-item">
+                        <span class="info-label">Qual:</span>
+                        <span class="info-value">${participant.comorbidade_qual || '-'}</span>
+                    </div>
+                ` : ''}
+                <div class="info-item">
+                    <span class="info-label">Grávida:</span>
+                    <span class="info-value ${participant.gravida === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.gravida}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Medicação:</span>
+                    <span class="info-value ${participant.medicacao === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.medicacao}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Restrições Alimentares:</span>
+                    <span class="info-value ${participant.restricoes_alimentares === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.restricoes_alimentares}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Alergias:</span>
+                    <span class="info-value ${participant.alergias === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.alergias}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Limitação Locomoção:</span>
+                    <span class="info-value ${participant.limitacao_locomocao === 'SIM' ? 'highlight-sim' : 'highlight-nao'}">${participant.limitacao_locomocao}</span>
+                </div>
+            `;
+
+            // Informações do retiro
+            document.getElementById('retreat-info').innerHTML = `
+                <div class="info-item">
+                    <span class="info-label">Cor da Rede:</span>
+                    <span class="info-value">${participant.cor_rede}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Tipo:</span>
+                    <span class="info-value">${participant.vai_servir_receber}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status Pagamento:</span>
+                    <span class="info-value">${participant.status_pagamento}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Forma Pagamento:</span>
+                    <span class="info-value">${participant.forma_pagamento}</span>
+                </div>
+            `;
+
+            // Atualizar resumo de pagamento
+            updatePaymentSummary(participant);
+        }
+
+        function updatePaymentSummary(participant) {
+            const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+            const saldoRestante = 520 - valorPago;
+
+            document.getElementById('amount-paid').textContent = `R$ ${valorPago.toFixed(2).replace('.', ',')}`;
+            document.getElementById('amount-remaining').textContent = `R$ ${saldoRestante.toFixed(2).replace('.', ',')}`;
+
+            // Preencher automaticamente o valor restante
+            if (saldoRestante > 0) {
+                document.getElementById('payment-amount').value = saldoRestante.toFixed(2).replace('.', ',');
+            } else {
+                document.getElementById('payment-amount').value = '0,00';
+            }
+        }
+
+        // ===================================
+        // PROCESSAMENTO DE PAGAMENTOS
+        // ===================================
+        
+        async function processPayment() {
+            if (!selectedParticipant) return;
+
+            const paymentAmount = document.getElementById('payment-amount').value;
+            const paymentMethod = document.getElementById('payment-method').value;
+            const paymentObs = document.getElementById('payment-obs').value;
+
+            if (!paymentAmount || !paymentMethod) {
+                showMessage('Preencha o valor e a forma de pagamento', 'error');
+                return;
+            }
+
+            try {
+                const valorRecebido = parseFloat(paymentAmount.replace(',', '.'));
+                const valorAnterior = parseFloat(selectedParticipant.valor_pago?.replace(',', '.') || '0');
+                const novoTotal = valorAnterior + valorRecebido;
+
+                // Determinar novo status
+                let novoStatus;
+                if (novoTotal >= 520) {
+                    novoStatus = 'QUITADO';
+                } else if (novoTotal > 0) {
+                    novoStatus = 'ENTRADA-PAGA';
+                } else {
+                    novoStatus = 'PENDENTE';
+                }
+
+                // Atualizar no banco
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        valor_pago: novoTotal.toFixed(2).replace('.', ','),
+                        status_pagamento: novoStatus,
+                        forma_pagamento: paymentMethod,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', selectedParticipant.id)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                // Registrar histórico de pagamento
+                await registerPaymentHistory(selectedParticipant.id, valorRecebido, paymentMethod, paymentObs);
+
+                // Atualizar dados locais
+                selectedParticipant = data;
+                updatePaymentSummary(data);
+
+                showMessage(`Pagamento de R$ ${paymentAmount} processado com sucesso!`, 'success');
+
+                // Limpar formulário
+                document.getElementById('payment-obs').value = '';
+
+                // Habilitar botão de impressão
+                document.getElementById('print-receipt').disabled = false;
+
+            } catch (error) {
+                console.error('Erro ao processar pagamento:', error);
+                showMessage('Erro ao processar pagamento: ' + error.message, 'error');
+            }
+        }
+
+        async function registerPaymentHistory(participantId, valor, method, obs) {
+            try {
+                const { error } = await supabase
+                    .from('pagamentos')
+                    .insert([{
+                        inscricao_id: participantId,
+                        valor: valor,
+                        forma_pagamento: method,
+                        observacoes: obs || null,
+                        data_pagamento: new Date().toISOString(),
+                        usuario: 'BALCAO'
+                    }]);
+
+                if (error) throw error;
+                console.log('Histórico de pagamento registrado');
+
+            } catch (error) {
+                console.error('Erro ao registrar histórico:', error);
+                // Não bloquear o fluxo principal por erro no histórico
+            }
+        }
+
+        // ===================================
+        // GERAÇÃO E IMPRESSÃO DE RECIBO
+        // ===================================
+        
+        function generateReceipt() {
+            if (!selectedParticipant) return;
+
+            const paymentAmount = document.getElementById('payment-amount').value;
+            const paymentMethod = document.getElementById('payment-method').value;
+
+            if (!paymentAmount || !paymentMethod) {
+                showMessage('Processe o pagamento antes de imprimir o recibo', 'error');
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR');
+            const timeStr = now.toLocaleTimeString('pt-BR');
+
+            const valorRecebido = parseFloat(paymentAmount.replace(',', '.'));
+            const valorTotal = parseFloat(selectedParticipant.valor_pago?.replace(',', '.') || '0');
+            const saldoRestante = 520 - valorTotal;
+
+            // Determinar datas do retiro baseado no gênero
+            let datasRetiro = '';
+            if (selectedParticipant.genero === 'HOMEM') {
+                datasRetiro = '8, 9 e 10 de Agosto';
+            } else if (selectedParticipant.genero === 'MULHER') {
+                datasRetiro = '15, 16 e 17 de Agosto';
+            }
+
+            const receiptContent = `
+                <div class="receipt-row">
+                    <span>Data/Hora:</span>
+                    <span>${dateStr} ${timeStr}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Participante:</span>
+                </div>
+                <div style="margin-bottom: 5px; font-weight: bold;">${selectedParticipant.nome_completo}</div>
+                
+                <div class="receipt-row">
+                    <span>Genero:</span>
+                    <span>${selectedParticipant.genero}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Idade:</span>
+                    <span>${selectedParticipant.idade} anos</span>
+                </div>
+                <div class="receipt-row">
+                    <span>WhatsApp:</span>
+                    <span>${selectedParticipant.whatsapp}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Rede:</span>
+                    <span>${selectedParticipant.cor_rede}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Tipo:</span>
+                    <span>${selectedParticipant.vai_servir_receber}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Datas:</span>
+                    <span>${datasRetiro}</span>
+                </div>
+                
+                <div style="margin: 8px 0; border-top: 1px dashed black; padding-top: 5px;">
+                    <div class="receipt-row">
+                        <span>Valor do Retiro:</span>
+                        <span>R$ 520,00</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Valor Recebido Hoje:</span>
+                        <span>R$ ${valorRecebido.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Total Pago:</span>
+                        <span>R$ ${valorTotal.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div class="receipt-row receipt-total">
+                        <span>Saldo Restante:</span>
+                        <span>R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                </div>
+                
+                <div class="receipt-row">
+                    <span>Forma Pagamento:</span>
+                    <span>${getPaymentMethodName(paymentMethod)}</span>
+                </div>
+                
+                ${saldoRestante > 0 ? `
+                    <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
+                        <strong>ATENCAO:</strong><br>
+                        Saldo restante deve ser pago<br>
+                        ate o dia do retiro
+                    </div>
+                ` : `
+                    <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
+                        <strong>PAGAMENTO QUITADO</strong><br>
+                        Participacao confirmada!
+                    </div>
+                `}
+            `;
+
+            document.getElementById('receipt-content').innerHTML = receiptContent;
+            
+            // Mostrar recibo e imprimir
+            document.getElementById('print-receipt').style.display = 'block';
+            setTimeout(() => {
+                window.print();
+                document.getElementById('print-receipt').style.display = 'none';
+            }, 100);
+        }
+
+        function getPaymentMethodName(method) {
+            const methods = {
+                'PIX': 'PIX',
+                'DINHEIRO': 'Dinheiro',
+                'CT-DÉBITO': 'Cartao Debito',
+                'CT-CRÉDITO': 'Cartao Credito'
+            };
+            return methods[method] || method;
+        }
+
+        // ===================================
+        // FUNÇÕES AUXILIARES
+        // ===================================
+        
+        function showLoading(message) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>${message}</div>
+                </div>
+            `;
+        }
+
+        function updateSearchStatus(status) {
+            document.getElementById('search-status').textContent = status;
+        }
+
+        function showMessage(message, type) {
+            const container = document.getElementById('message-container');
+            const messageClass = `message-${type}`;
+            
+            container.innerHTML = `
+                <div class="message ${messageClass}">
+                    ${message}
+                </div>
+            `;
+
+            // Auto-remover mensagem após 5 segundos
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function formatCurrency(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 3) {
+                value = value.replace(/(\d+)(\d{2})$/, '$1,$2');
+            }
+            input.value = value;
+        }
+
+        function cancelSelection() {
+            selectedParticipant = null;
+            document.getElementById('details-panel').style.display = 'none';
+            document.querySelectorAll('.person-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Limpar formulário
+            document.getElementById('payment-amount').value = '';
+            document.getElementById('payment-method').value = '';
+            document.getElementById('payment-obs').value = '';
+        }
+
+        // ===================================
+        // EVENT LISTENERS
+        // ===================================
+        
+        document.getElementById('search-btn').addEventListener('click', function() {
+            const searchName = document.getElementById('search-name').value.trim();
+            if (searchName.length < 2) {
+                showMessage('Digite pelo menos 2 caracteres para buscar', 'error');
+                return;
+            }
+            searchParticipants(searchName);
+        });
+
+        document.getElementById('search-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('search-btn').click();
+            }
+        });
+
+        document.getElementById('search-name').addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        document.getElementById('payment-amount').addEventListener('input', function() {
+            formatCurrency(this);
+        });
+
+        document.getElementById('process-payment').addEventListener('click', processPayment);
+        document.getElementById('print-receipt').addEventListener('click', generateReceipt);
+        document.getElementById('cancel-selection').addEventListener('click', cancelSelection);
+
+        // ===================================
+        // INICIALIZAÇÃO
+        // ===================================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSupabase();
+            console.log('🎯 Sistema de Balcão carregado!');
+            
+            // Focar no campo de busca
+            document.getElementById('search-name').focus();
+        });
+
+        // ===================================
+        // FUNÇÕES PARA CRIAR TABELA DE PAGAMENTOS (SE NÃO EXISTIR)
+        // ===================================
+        
+        // Execute no console do Supabase para criar a tabela de histórico:
+        /*
+        CREATE TABLE IF NOT EXISTS pagamentos (
+            id SERIAL PRIMARY KEY,
+            inscricao_id INTEGER REFERENCES inscricoes(id),
+            valor DECIMAL(10,2) NOT NULL,
+            forma_pagamento VARCHAR(50) NOT NULL,
+            observacoes TEXT,
+            data_pagamento TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            usuario VARCHAR(100),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        */
+
+        // Função para testar o sistema
+        window.testarSistema = async function() {
+            console.log('🧪 Testando sistema de balcão...');
+            
+            try {
+                const { count, error } = await supabase
+                    .from('inscricoes')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) throw error;
+                
+                console.log('✅ Conexão OK! Total de inscrições:', count);
+                alert('✅ Sistema funcionando! Total de inscrições: ' + count);
+                
+                // Buscar uma inscrição de exemplo
+                const { data } = await supabase
+                    .from('inscricoes')
+                    .select('nome_completo')
+                    .limit(1);
+                
+                if (data && data.length > 0) {
+                    console.log('📋 Exemplo de nome para buscar:', data[0].nome_completo);
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro no teste:', error);
+                alert('❌ Erro no sistema: ' + error.message);
+            }
+        };
+
+        console.log('🎯 Sistema de Balcão carregado com sucesso!');
+        console.log('💡 Para testar o sistema, execute: testarSistema()');
+        console.log('💡 Para criar a tabela de pagamentos, execute o SQL no Supabase:');
+        console.log(`
+        CREATE TABLE IF NOT EXISTS pagamentos (
+            id SERIAL PRIMARY KEY,
+            inscricao_id INTEGER REFERENCES inscricoes(id),
+            valor DECIMAL(10,2) NOT NULL,
+            forma_pagamento VARCHAR(50) NOT NULL,
+            observacoes TEXT,
+            data_pagamento TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            usuario VARCHAR(100),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        `);
