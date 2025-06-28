@@ -422,8 +422,7 @@
                     .from('inscricoes')
                     .update({
                         valor_pago: newPaidValue,
-                        status_pagamento: paidAmount >= 520 ? 'QUITADO' : (paidAmount > 0 ? 'ENTRADA-PAGA' : 'PENDENTE'),
-                        updated_at: new Date().toISOString()
+                        status_pagamento: paidAmount >= 520 ? 'QUITADO' : (paidAmount > 0 ? 'ENTRADA-PAGA' : 'PENDENTE')
                     })
                     .eq('id', participantId);
 
@@ -451,8 +450,7 @@
                     .from('inscricoes')
                     .update({
                         valor_pago: newPaid.toFixed(2).replace('.', ','),
-                        status_pagamento: newPaid >= 520 ? 'QUITADO' : (newPaid > 0 ? 'ENTRADA-PAGA' : 'PENDENTE'),
-                        updated_at: new Date().toISOString()
+                        status_pagamento: newPaid >= 520 ? 'QUITADO' : (newPaid > 0 ? 'ENTRADA-PAGA' : 'PENDENTE')
                     })
                     .eq('id', participantId);
 
@@ -474,8 +472,7 @@
                 const { error } = await supabase
                     .from('inscricoes')
                     .update({
-                        forma_pagamento: newMethod,
-                        updated_at: new Date().toISOString()
+                        forma_pagamento: newMethod
                     })
                     .eq('id', participantId);
 
@@ -491,7 +488,7 @@
         }
 
         // ===================================
-        // PROCESSAMENTO RÁPIDO DE PAGAMENTO
+        // PROCESSAMENTO RÁPIDO DE PAGAMENTO (CORRIGIDO)
         // ===================================
         
         async function processQuickPayment(participantId) {
@@ -507,31 +504,67 @@
                 if (error) throw error;
 
                 const participant = data;
-                const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
-                const saldoRestante = 520 - valorPago;
+                const valorJaPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+                const saldoRestante = 520 - valorJaPago;
 
                 if (saldoRestante > 0) {
-                    const confirmPayment = confirm(`💰 CONFIRMAR PAGAMENTO?\n\n👤 ${participant.nome_completo}\n💰 Valor a receber: R$ ${saldoRestante.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n✅ Confirmar e imprimir recibo?`);
+                    // PERGUNTAR QUANTO VAI PAGAR (não assumir quitação total)
+                    const valorAReceber = prompt(`💰 QUANTO VAI PAGAR AGORA?\n\n👤 ${participant.nome_completo}\n💰 Saldo pendente: R$ ${saldoRestante.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n💵 Digite o valor a receber:`);
                     
-                    if (!confirmPayment) return;
+                    if (!valorAReceber || valorAReceber.trim() === '') return;
 
+                    // Converter e validar valor
+                    const valorRecebido = parseFloat(valorAReceber.replace(',', '.'));
+                    
+                    if (isNaN(valorRecebido) || valorRecebido <= 0) {
+                        alert('❌ Valor inválido! Digite um valor válido.');
+                        return;
+                    }
+
+                    if (valorRecebido > saldoRestante) {
+                        alert(`❌ Valor maior que o saldo pendente!\nSaldo: R$ ${saldoRestante.toFixed(2).replace('.', ',')}`);
+                        return;
+                    }
+
+                    // Confirmar pagamento
+                    const confirmar = confirm(`💰 CONFIRMAR PAGAMENTO?\n\n👤 ${participant.nome_completo}\n💰 Valor a receber: R$ ${valorRecebido.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n✅ Confirmar e imprimir recibo?`);
+                    
+                    if (!confirmar) return;
+
+                    // Calcular novo total
+                    const novoTotal = valorJaPago + valorRecebido;
+                    const novoSaldo = 520 - novoTotal;
+
+                    // Determinar status correto
+                    let novoStatus;
+                    if (novoTotal >= 520) {
+                        novoStatus = 'QUITADO';
+                    } else if (novoTotal > 0) {
+                        novoStatus = 'ENTRADA-PAGA';
+                    } else {
+                        novoStatus = 'PENDENTE';
+                    }
+
+                    // Atualizar no banco com valores corretos
                     const { error: updateError } = await supabase
                         .from('inscricoes')
                         .update({
-                            valor_pago: '520,00',
-                            status_pagamento: 'QUITADO',
-                            updated_at: new Date().toISOString()
+                            valor_pago: novoTotal.toFixed(2).replace('.', ','),
+                            status_pagamento: novoStatus
                         })
                         .eq('id', participantId);
 
                     if (updateError) throw updateError;
 
-                    showQuickMessage(`✅ Pagamento processado! ${participant.nome_completo} - QUITADO`, 'success');
+                    showQuickMessage(`✅ Pagamento processado! R$ ${valorRecebido.toFixed(2).replace('.', ',')} recebido. Novo saldo: R$ ${novoSaldo.toFixed(2).replace('.', ',')}`, 'success');
                     
-                    participant.valor_pago = '520,00';
-                    participant.status_pagamento = 'QUITADO';
+                    // Atualizar dados do participante para o recibo
+                    participant.valor_pago = novoTotal.toFixed(2).replace('.', ',');
+                    participant.status_pagamento = novoStatus;
+                    participant.valor_recebido_hoje = valorRecebido; // NOVO CAMPO para o recibo
                 }
 
+                // Gerar recibo (funciona para pagamento parcial ou reimpressão)
                 generateQuickReceipt(participant);
                 
             } catch (error) {
@@ -541,7 +574,7 @@
         }
 
         // ===================================
-        // GERAÇÃO DE RECIBO COM PREVIEW
+        // GERAÇÃO DE RECIBO COM PREVIEW (CORRIGIDO)
         // ===================================
         
         function generateQuickReceipt(participant) {
@@ -553,6 +586,9 @@
 
             const valorTotal = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
             const saldoRestante = 520 - valorTotal;
+            
+            // Valor recebido hoje (se foi um novo pagamento)
+            const valorRecebidoHoje = participant.valor_recebido_hoje || 0;
 
             let datasRetiro = '';
             if (participant.genero === 'HOMEM') {
@@ -597,6 +633,12 @@
                                     <span>Valor do Retiro:</span>
                                     <span>R$ 520,00</span>
                                 </div>
+                                ${valorRecebidoHoje > 0 ? `
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Valor Recebido Hoje:</span>
+                                    <span>R$ ${valorRecebidoHoje.toFixed(2).replace('.', ',')}</span>
+                                </div>
+                                ` : ''}
                                 <div style="display: flex; justify-content: space-between;">
                                     <span>Total Pago:</span>
                                     <span>R$ ${valorTotal.toFixed(2).replace('.', ',')}</span>
@@ -622,8 +664,8 @@
                             `}
                             
                             <div style="text-align: center; margin-top: 10px; border-top: 1px dashed black; padding-top: 5px; font-size: 10px;">
-                                <div>Obrigado pela sua participacao!</div>
-                                <div>www.alvo.church</div>
+                                <div>Parabéns pelo seu posicionamento!!</div>
+                                <div style="font-weight: bold;">ALVO CHURCH</div>
                             </div>
                         </div>
                         
@@ -653,6 +695,7 @@
 
             const valorTotal = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
             const saldoRestante = 520 - valorTotal;
+            const valorRecebidoHoje = participant.valor_recebido_hoje || 0;
 
             let datasRetiro = '';
             if (participant.genero === 'HOMEM') {
@@ -692,6 +735,12 @@
                             <span>Valor do Retiro:</span>
                             <span>R$ 520,00</span>
                         </div>
+                        ${valorRecebidoHoje > 0 ? `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>Valor Recebido Hoje:</span>
+                            <span>R$ ${valorRecebidoHoje.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                        ` : ''}
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>Total Pago:</span>
                             <span>R$ ${valorTotal.toFixed(2).replace('.', ',')}</span>
@@ -719,7 +768,7 @@
                     
                     <div style="text-align: center; margin-top: 10px; border-top: 1px dashed black; padding-top: 5px; font-size: 8px;">
                         <div>Obrigado pela sua participacao!</div>
-                        <div>www.alvo.church</div>
+                        <div style="font-weight: bold;">ALVO CHURCH</div>
                     </div>
                 </div>
             `;
@@ -1004,7 +1053,7 @@
                     });
                 }
                 
-                alert(`✅ Sistema com Edição Rápida funcionando!\n\n📊 Total: ${count} inscrições\n\n🆕 NOVIDADES:\n✏️ Edição direta nos cards\n⚡ Processamento rápido\n🖨️ Preview de recibos\n💰 Atualização em tempo real`);
+                alert(`✅ Sistema com Pagamentos Corrigidos funcionando!\n\n📊 Total: ${count} inscrições\n\n🆕 CORREÇÕES:\n✏️ Pagamentos parciais corretos\n⚡ Valores calculados corretamente\n🖨️ Recibos com dados precisos\n💰 Status de pagamento correto`);
                 
             } catch (error) {
                 console.error('❌ Erro no teste:', error);
@@ -1012,13 +1061,13 @@
             }
         };
 
-        console.log('🎯 Sistema de Balcão com Edição Rápida carregado!');
-        console.log('📋 NOVAS funcionalidades:');
-        console.log('   ✏️ Edição direta dos valores nos cards');
-        console.log('   ⚡ Processamento rápido de pagamentos');
-        console.log('   🖨️ Preview de recibos antes da impressão');
-        console.log('   💰 Atualização automática no banco de dados');
-        console.log('   📱 Interface otimizada para o balcão');
+        console.log('🎯 Sistema de Balcão CORRIGIDO carregado!');
+        console.log('📋 CORREÇÕES implementadas:');
+        console.log('   ✅ Pergunta valor exato a receber');
+        console.log('   ✅ Não quita automaticamente');
+        console.log('   ✅ Recibo mostra valor recebido hoje');
+        console.log('   ✅ Cálculos de saldo corretos');
+        console.log('   ✅ Status baseado no valor real pago');
         console.log('\n💡 Para testar: testarSistemaRapido()');
     </script>
 </body>
