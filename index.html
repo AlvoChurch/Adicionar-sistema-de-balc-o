@@ -270,6 +270,16 @@
                 <div id="search-status" style="margin-top: 15px; text-align: center; color: #ccc;">
                     Digite o nome e clique em buscar
                 </div>
+
+                <!-- BOTÃO DE EXPORTAR EXCEL -->
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #333;">
+                    <button id="export-excel-btn" onclick="exportToExcel()" style="background: linear-gradient(45deg, #22c55e, #16a34a); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 0.9em; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(34, 197, 94, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+                        📊 Exportar Base Completa (Excel)
+                    </button>
+                    <div style="text-align: center; margin-top: 8px; font-size: 0.8em; color: #666;">
+                        Baixa arquivo .xlsx com todos os dados
+                    </div>
+                </div>
             </div>
 
             <!-- PAINEL DE RESULTADOS -->
@@ -290,6 +300,8 @@
 
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS para Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script>
         // ===================================
@@ -1136,8 +1148,176 @@
         });
 
         // ===================================
-        // FUNÇÃO DE TESTE
+        // EXPORTAR PARA EXCEL
         // ===================================
+        
+        async function exportToExcel() {
+            try {
+                const exportBtn = document.getElementById('export-excel-btn');
+                exportBtn.textContent = '📊 Exportando...';
+                exportBtn.disabled = true;
+                
+                console.log('📊 Iniciando exportação para Excel...');
+                showQuickMessage('📊 Preparando exportação...', 'success');
+                
+                // Buscar todos os dados
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('status', 'ATIVO')
+                    .order('nome_completo');
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    throw new Error('Nenhuma inscrição encontrada para exportar');
+                }
+
+                console.log(`📋 ${data.length} registros encontrados para exportação`);
+                
+                // Preparar dados para Excel
+                const excelData = data.map((participant, index) => {
+                    // Calcular valores baseado na lógica do sistema
+                    let valorRealmentePago = 0;
+                    if (participant.status_pagamento === 'QUITADO' || participant.status_pagamento === 'ENTRADA-PAGA') {
+                        valorRealmentePago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+                    }
+                    
+                    const saldoRestante = 520 - valorRealmentePago;
+                    const temDireitoCamisa = participant.status_pagamento === 'QUITADO' ? 'SIM' : 'NÃO';
+                    
+                    let datasRetiro = '';
+                    if (participant.genero === 'HOMEM') {
+                        datasRetiro = '8, 9 e 10 de Agosto de 2025';
+                    } else if (participant.genero === 'MULHER') {
+                        datasRetiro = '15, 16 e 17 de Agosto de 2025';
+                    }
+
+                    return {
+                        'ID': participant.id,
+                        'Nome Completo': participant.nome_completo,
+                        'Gênero': participant.genero,
+                        'Idade': participant.idade,
+                        'WhatsApp': participant.whatsapp,
+                        'Cor da Rede': participant.cor_rede,
+                        'Tipo Participação': participant.vai_servir_receber,
+                        'Data do Retiro': datasRetiro,
+                        
+                        // Informações de Saúde
+                        'Comorbidade': participant.comorbidade,
+                        'Detalhes Comorbidade': participant.comorbidade_qual || '',
+                        'Grávida': participant.gravida,
+                        'Observações Gravidez': participant.gravidez_observacao || '',
+                        'Medicação Contínua': participant.medicacao,
+                        'Detalhes Medicação': participant.medicacao_qual || '',
+                        'Restrições Alimentares': participant.restricoes_alimentares,
+                        'Detalhes Restrições': participant.restricoes_quais || '',
+                        'Alergias': participant.alergias,
+                        'Detalhes Alergias': participant.alergias_quais || '',
+                        'Limitação Locomoção': participant.limitacao_locomocao,
+                        'Detalhes Locomoção': participant.locomocao_qual || '',
+                        
+                        // Informações Financeiras
+                        'Status Pagamento': participant.status_pagamento,
+                        'Valor Previsto': `R$ ${parseFloat(participant.valor_pago?.replace(',', '.') || '0').toFixed(2).replace('.', ',')}`,
+                        'Valor Realmente Pago': `R$ ${valorRealmentePago.toFixed(2).replace('.', ',')}`,
+                        'Saldo Restante': `R$ ${saldoRestante.toFixed(2).replace('.', ',')}`,
+                        'Forma Pagamento': participant.forma_pagamento,
+                        'Tem Direito à Camisa': temDireitoCamisa,
+                        
+                        // Metadados
+                        'Data Inscrição': new Date(participant.created_at).toLocaleDateString('pt-BR'),
+                        'Hora Inscrição': new Date(participant.created_at).toLocaleTimeString('pt-BR'),
+                        'Status Geral': participant.status
+                    };
+                });
+
+                // Criar workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Adicionar worksheet principal
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                
+                // Ajustar largura das colunas
+                const colWidths = [
+                    { wch: 5 },   // ID
+                    { wch: 25 },  // Nome
+                    { wch: 10 },  // Gênero
+                    { wch: 8 },   // Idade
+                    { wch: 15 },  // WhatsApp
+                    { wch: 12 },  // Rede
+                    { wch: 12 },  // Tipo
+                    { wch: 25 },  // Data Retiro
+                    { wch: 12 },  // Comorbidade
+                    { wch: 30 },  // Detalhes Comorbidade
+                    { wch: 10 },  // Grávida
+                    { wch: 30 },  // Obs Gravidez
+                    { wch: 12 },  // Medicação
+                    { wch: 30 },  // Detalhes Med
+                    { wch: 15 },  // Restrições
+                    { wch: 30 },  // Detalhes Rest
+                    { wch: 10 },  // Alergias
+                    { wch: 30 },  // Detalhes Alerg
+                    { wch: 15 },  // Locomoção
+                    { wch: 30 },  // Detalhes Loc
+                    { wch: 15 },  // Status Pag
+                    { wch: 12 },  // Valor Prev
+                    { wch: 15 },  // Valor Pago
+                    { wch: 12 },  // Saldo
+                    { wch: 12 },  // Forma Pag
+                    { wch: 12 },  // Camisa
+                    { wch: 12 },  // Data Insc
+                    { wch: 10 },  // Hora Insc
+                    { wch: 10 }   // Status
+                ];
+                
+                ws['!cols'] = colWidths;
+                
+                // Adicionar worksheet ao workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'Inscrições Completas');
+                
+                // Criar worksheet resumo
+                const resumo = [
+                    { 'Métrica': 'Total de Inscrições', 'Valor': data.length },
+                    { 'Métrica': 'Homens', 'Valor': data.filter(p => p.genero === 'HOMEM').length },
+                    { 'Métrica': 'Mulheres', 'Valor': data.filter(p => p.genero === 'MULHER').length },
+                    { 'Métrica': 'Trabalho', 'Valor': data.filter(p => p.vai_servir_receber === 'TRABALHO').length },
+                    { 'Métrica': 'Encontristas', 'Valor': data.filter(p => p.vai_servir_receber === 'ENCONTRISTA').length },
+                    { 'Métrica': 'Pagamentos Quitados', 'Valor': data.filter(p => p.status_pagamento === 'QUITADO').length },
+                    { 'Métrica': 'Pagamentos Parciais', 'Valor': data.filter(p => p.status_pagamento === 'ENTRADA-PAGA').length },
+                    { 'Métrica': 'Aguardando Pagamento', 'Valor': data.filter(p => !p.status_pagamento || p.status_pagamento === 'PENDENTE').length },
+                    { 'Métrica': 'Com Direito à Camisa', 'Valor': data.filter(p => p.status_pagamento === 'QUITADO').length },
+                    { 'Métrica': 'Rede Branca', 'Valor': data.filter(p => p.cor_rede === 'BRANCA').length },
+                    { 'Métrica': 'Rede Azul', 'Valor': data.filter(p => p.cor_rede === 'AZUL').length },
+                    { 'Métrica': 'Rede Amarela', 'Valor': data.filter(p => p.cor_rede === 'AMARELA').length },
+                    { 'Métrica': 'Rede Vermelha', 'Valor': data.filter(p => p.cor_rede === 'VERMELHA').length },
+                    { 'Métrica': 'Rede Verde', 'Valor': data.filter(p => p.cor_rede === 'VERDE').length },
+                    { 'Métrica': 'Sem Rede', 'Valor': data.filter(p => p.cor_rede === 'NÃO-POSSUO').length }
+                ];
+                
+                const wsResumo = XLSX.utils.json_to_sheet(resumo);
+                wsResumo['!cols'] = [{ wch: 25 }, { wch: 10 }];
+                XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Estatísticas');
+                
+                // Gerar arquivo e fazer download
+                const now = new Date();
+                const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `Retiro_ALVO_2025_${timestamp}.xlsx`;
+                
+                XLSX.writeFile(wb, filename);
+                
+                console.log(`✅ Arquivo ${filename} gerado com sucesso!`);
+                showQuickMessage(`✅ Arquivo ${filename} baixado com sucesso! ${data.length} registros exportados.`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Erro na exportação:', error);
+                showQuickMessage(`❌ Erro na exportação: ${error.message}`, 'error');
+            } finally {
+                const exportBtn = document.getElementById('export-excel-btn');
+                exportBtn.textContent = '📊 Exportar Base Completa (Excel)';
+                exportBtn.disabled = false;
+            }
+        }
         
         window.testarSistemaFinal = async function() {
             console.log('🧪 Testando sistema FINAL com contador de camisas...');
