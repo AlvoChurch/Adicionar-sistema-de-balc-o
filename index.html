@@ -213,6 +213,46 @@
             <div class="subtitle-sistema">O RETIRO • GESTÃO DE PAGAMENTOS</div>
         </div>
 
+        <!-- CONTADOR DE CAMISAS -->
+        <div style="background: linear-gradient(135deg, #ff6b35, #ff8a5b); border-radius: 15px; padding: 25px; margin-bottom: 30px; border: 3px solid #ff4500; box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);">
+            <div style="text-align: center;">
+                <h2 style="color: white; font-size: 2em; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 3px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    🎽 CONTADOR DE CAMISAS
+                </h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 15px; backdrop-filter: blur(10px);">
+                        <div style="font-size: 2.5em; font-weight: 900; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);" id="camisas-entregues">
+                            0
+                        </div>
+                        <div style="color: white; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+                            Camisas Entregues
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 15px; backdrop-filter: blur(10px);">
+                        <div style="font-size: 2.5em; font-weight: 900; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);" id="camisas-restantes">
+                            150
+                        </div>
+                        <div style="color: white; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+                            Camisas Restantes
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 15px; backdrop-filter: blur(10px);">
+                        <div style="font-size: 1.5em; font-weight: 900; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);" id="status-camisa">
+                            🎽 DISPONÍVEL
+                        </div>
+                        <div style="color: white; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+                            Status da Promoção
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px;">
+                    <div style="color: white; font-size: 0.9em; font-weight: bold;">
+                        📋 <strong>REGRA:</strong> As 150 primeiras pessoas que <strong>QUITAREM</strong> o valor integral (R$ 520,00) no balcão ganham a camisa!
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="main-layout">
             <!-- PAINEL DE BUSCA -->
             <div class="search-panel">
@@ -263,6 +303,7 @@
 
         let supabase;
         let selectedParticipant = null;
+        let camisasEntregues = 0;
 
         // ===================================
         // INICIALIZAÇÃO
@@ -272,10 +313,57 @@
             try {
                 supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
                 console.log('✅ Supabase inicializado!');
+                
+                // Carregar contador de camisas ao inicializar
+                loadCamisasCounter();
+                
                 return true;
             } catch (error) {
                 console.error('❌ Erro ao inicializar Supabase:', error);
                 return false;
+            }
+        }
+
+        // ===================================
+        // CONTADOR DE CAMISAS
+        // ===================================
+        
+        async function loadCamisasCounter() {
+            try {
+                console.log('🎽 Carregando contador de camisas...');
+                
+                // Buscar pessoas que quitaram completamente (status_pagamento = 'QUITADO')
+                const { count, error } = await supabase
+                    .from('inscricoes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status_pagamento', 'QUITADO')
+                    .eq('status', 'ATIVO');
+
+                if (error) throw error;
+
+                camisasEntregues = count || 0;
+                const camisasRestantes = Math.max(0, 150 - camisasEntregues);
+                
+                // Atualizar interface
+                document.getElementById('camisas-entregues').textContent = camisasEntregues;
+                document.getElementById('camisas-restantes').textContent = camisasRestantes;
+                
+                const statusElement = document.getElementById('status-camisa');
+                if (camisasRestantes > 0) {
+                    statusElement.textContent = '🎽 DISPONÍVEL';
+                    statusElement.style.color = '#4ade80';
+                } else {
+                    statusElement.textContent = '❌ ESGOTADAS';
+                    statusElement.style.color = '#ef4444';
+                }
+                
+                console.log(`🎽 Camisas: ${camisasEntregues}/150 entregues, ${camisasRestantes} restantes`);
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar contador de camisas:', error);
+                document.getElementById('camisas-entregues').textContent = '?';
+                document.getElementById('camisas-restantes').textContent = '?';
+                document.getElementById('status-camisa').textContent = '❌ ERRO';
             }
         }
 
@@ -321,15 +409,28 @@
                         
                         let statusPagamento = '';
                         let statusClass = '';
+                        let temDireitoCamisa = false;
+                        
                         if (valorRealmentePago >= 520) {
                             statusPagamento = '✅ QUITADO';
                             statusClass = 'style="color: #4ade80; font-weight: bold;"';
+                            temDireitoCamisa = true;
                         } else if (valorRealmentePago > 0) {
                             statusPagamento = `🟡 PAGAMENTO PARCIAL`;
                             statusClass = 'style="color: #fbbf24; font-weight: bold;"';
                         } else {
                             statusPagamento = '🔴 AGUARDANDO PAGAMENTO';
                             statusClass = 'style="color: #ef4444; font-weight: bold;"';
+                        }
+
+                        // Verificar se ainda tem direito à camisa
+                        let alertaCamisa = '';
+                        if (temDireitoCamisa && camisasEntregues < 150) {
+                            alertaCamisa = '<div style="background: #22c55e; color: white; padding: 5px; border-radius: 5px; font-size: 0.8em; font-weight: bold; text-align: center; margin-top: 5px;">🎽 TEM DIREITO À CAMISA!</div>';
+                        } else if (!temDireitoCamisa && (520 - valorPrevisao) === 0 && camisasEntregues < 150) {
+                            alertaCamisa = '<div style="background: #ff6b35; color: white; padding: 5px; border-radius: 5px; font-size: 0.8em; font-weight: bold; text-align: center; margin-top: 5px;">🎽 PODE GANHAR CAMISA!</div>';
+                        } else if (camisasEntregues >= 150) {
+                            alertaCamisa = '<div style="background: #ef4444; color: white; padding: 5px; border-radius: 5px; font-size: 0.8em; font-weight: bold; text-align: center; margin-top: 5px;">❌ CAMISAS ESGOTADAS</div>';
                         }
 
                         return `
@@ -374,6 +475,8 @@
                                         </div>
                                     </div>
                                 </div>
+                                
+                                ${alertaCamisa}
                                 
                                 <!-- BOTÃO DE AÇÃO PRINCIPAL -->
                                 <div style="text-align: center; margin-top: 12px;">
@@ -518,6 +621,9 @@
                 const novoTotal = valorJaPago + valorRecebido;
                 const novoSaldo = 520 - novoTotal;
 
+                // Verificar se ganha camisa
+                const ganhouCamisa = (novoTotal >= 520 && camisasEntregues < 150);
+                
                 // Determinar status correto
                 let novoStatus;
                 if (novoTotal >= 520) {
@@ -539,13 +645,25 @@
 
                 if (updateError) throw updateError;
 
-                showQuickMessage(`✅ Pagamento processado! R$ ${valorRecebido.toFixed(2).replace('.', ',')} recebido. Novo saldo: R$ ${novoSaldo.toFixed(2).replace('.', ',')}`, 'success');
+                // Mostrar mensagem com informação sobre camisa
+                let mensagemCamisa = '';
+                if (ganhouCamisa) {
+                    mensagemCamisa = ` 🎽 GANHA CAMISA! (${camisasEntregues + 1}/150)`;
+                    // Atualizar contador
+                    camisasEntregues++;
+                    await loadCamisasCounter();
+                } else if (novoTotal >= 520 && camisasEntregues >= 150) {
+                    mensagemCamisa = ` ❌ Camisas esgotadas`;
+                }
+
+                showQuickMessage(`✅ Pagamento processado! R$ ${valorRecebido.toFixed(2).replace('.', ',')} recebido. Novo saldo: R$ ${novoSaldo.toFixed(2).replace('.', ',')}${mensagemCamisa}`, 'success');
                 
                 // Atualizar dados do participante para o recibo
                 participant.valor_pago = novoTotal.toFixed(2).replace('.', ',');
                 participant.status_pagamento = novoStatus;
                 participant.valor_recebido_hoje = valorRecebido;
                 participant.valor_total_pago = novoTotal; // Para o recibo
+                participant.ganhou_camisa = ganhouCamisa; // Adicionar informação da camisa
 
                 // Gerar recibo
                 generateQuickReceipt(participant);
@@ -572,6 +690,7 @@
             
             // Valor recebido hoje (se foi um novo pagamento)
             const valorRecebidoHoje = participant.valor_recebido_hoje || 0;
+            const ganhouCamisa = participant.ganhou_camisa || false;
 
             let datasRetiro = '';
             if (participant.genero === 'HOMEM') {
@@ -643,6 +762,7 @@
                                 <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 10px;">
                                     <strong>PAGAMENTO QUITADO</strong><br>
                                     Participacao confirmada!
+                                    ${ganhouCamisa ? '<br><strong style="color: #22c55e;">🎽 GANHA CAMISA DO RETIRO!</strong>' : ''}
                                 </div>
                             `}
                             
@@ -679,6 +799,7 @@
             const valorTotal = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
             const saldoRestante = 520 - valorTotal;
             const valorRecebidoHoje = participant.valor_recebido_hoje || 0;
+            const ganhouCamisa = participant.ganhou_camisa || false;
 
             let datasRetiro = '';
             if (participant.genero === 'HOMEM') {
@@ -746,6 +867,7 @@
                         <div style="margin-top: 8px; border-top: 1px dashed black; padding-top: 5px; text-align: center; font-size: 8px;">
                             <strong>PAGAMENTO QUITADO</strong><br>
                             Participacao confirmada!
+                            ${ganhouCamisa ? '<br><strong>🎽 GANHA CAMISA DO RETIRO!</strong>' : ''}
                         </div>
                     `}
                     
@@ -766,6 +888,9 @@
             setTimeout(() => {
                 window.print();
                 showQuickMessage('📄 Recibo enviado para impressora Elgin L42pro!', 'success');
+                
+                // Atualizar contador de camisas após processamento
+                setTimeout(() => loadCamisasCounter(), 500);
                 
                 const searchName = document.getElementById('search-name').value;
                 if (searchName) {
@@ -1015,7 +1140,7 @@
         // ===================================
         
         window.testarSistemaFinal = async function() {
-            console.log('🧪 Testando sistema FINAL...');
+            console.log('🧪 Testando sistema FINAL com contador de camisas...');
             
             try {
                 const { count, error } = await supabase
@@ -1025,6 +1150,15 @@
                 if (error) throw error;
                 
                 console.log('✅ Conexão OK! Total de inscrições:', count);
+                
+                // Testar contador de camisas
+                const { count: quitados } = await supabase
+                    .from('inscricoes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status_pagamento', 'QUITADO')
+                    .eq('status', 'ATIVO');
+                
+                console.log('🎽 Pessoas quitadas (com direito à camisa):', quitados);
                 
                 const { data } = await supabase
                     .from('inscricoes')
@@ -1040,11 +1174,14 @@
                             valorRealPago = valorPrevisao;
                         }
                         const saldo = 520 - valorRealPago;
-                        console.log(`   • ${p.nome_completo} (${p.genero}) - Previsão: R$ ${valorPrevisao.toFixed(2)} - Real Pago: R$ ${valorRealPago.toFixed(2)} - A Receber: R$ ${saldo.toFixed(2)}`);
+                        const temCamisa = p.status_pagamento === 'QUITADO' ? '🎽' : '❌';
+                        console.log(`   • ${p.nome_completo} (${p.genero}) - Previsão: R$ ${valorPrevisao.toFixed(2)} - Real Pago: R$ ${valorRealPago.toFixed(2)} - A Receber: R$ ${saldo.toFixed(2)} ${temCamisa}`);
                     });
                 }
                 
-                alert(`✅ Sistema FINAL funcionando perfeitamente!\n\n📊 Total: ${count} inscrições\n\n🎯 LÓGICA CORRIGIDA:\n📋 Previsão vs Valor Real Pago\n💰 Prompt preenchido com previsão\n⚡ Cálculos baseados no status correto\n🖨️ Recibos com valores precisos`);
+                await loadCamisasCounter();
+                
+                alert(`✅ Sistema FINAL funcionando perfeitamente!\n\n📊 Total: ${count} inscrições\n🎽 Quitados: ${quitados || 0}/150 camisas\n\n🎯 FUNCIONALIDADES:\n📋 Previsão vs Valor Real Pago\n💰 Prompt preenchido com previsão\n⚡ Cálculos baseados no status correto\n🖨️ Recibos com valores precisos\n🎽 CONTADOR DE CAMISAS ATIVO!`);
                 
             } catch (error) {
                 console.error('❌ Erro no teste:', error);
@@ -1052,13 +1189,16 @@
             }
         };
 
-        console.log('🎯 Sistema de Balcão FINAL carregado!');
-        console.log('📋 LÓGICA CORRIGIDA:');
+        console.log('🎯 Sistema de Balcão FINAL com CONTADOR DE CAMISAS!');
+        console.log('📋 FUNCIONALIDADES:');
         console.log('   📋 Campo "Previsão" (azul) - editável');
         console.log('   ⏳ Campo "A Receber" - calculado automaticamente');
         console.log('   💰 Prompt vem preenchido com valor da previsão');
         console.log('   🎯 Status baseado em pagamentos reais processados');
         console.log('   🖨️ Recibos mostram "Valor Recebido Hoje"');
+        console.log('   🎽 CONTADOR DE CAMISAS - 150 primeiras quitações!');
+        console.log('   🏆 Alerta automático de direito à camisa');
+        console.log('   📄 Recibos incluem informação da camisa');
         console.log('\n💡 Para testar: testarSistemaFinal()');
     </script>
 </body>
