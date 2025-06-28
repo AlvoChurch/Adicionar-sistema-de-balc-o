@@ -280,7 +280,7 @@
         }
 
         // ===================================
-        // FUNÇÃO DE BUSCA COM EDIÇÃO RÁPIDA
+        // FUNÇÃO DE BUSCA COM LÓGICA CORRIGIDA
         // ===================================
         
         async function searchParticipants(name) {
@@ -305,19 +305,30 @@
                     container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">❌ Nenhum participante encontrado<br><small>Tente buscar por parte do nome</small></div>';
                 } else {
                     container.innerHTML = data.map(participant => {
-                        const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
-                        const saldoRestante = 520 - valorPago;
+                        // NOVA LÓGICA: Tratar valor_pago como previsão se status_pagamento for inicial
+                        let valorRealmentePago = 0;
+                        let valorPrevisao = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+                        
+                        // Se o status indica que já foi processado algum pagamento, usar o valor como "pago"
+                        // Senão, tratar como "previsão" e valor pago = 0
+                        if (participant.status_pagamento === 'QUITADO' || participant.status_pagamento === 'ENTRADA-PAGA') {
+                            valorRealmentePago = valorPrevisao;
+                        } else {
+                            valorRealmentePago = 0; // Ainda não pagou nada
+                        }
+                        
+                        const saldoRestante = 520 - valorRealmentePago;
                         
                         let statusPagamento = '';
                         let statusClass = '';
-                        if (valorPago >= 520) {
+                        if (valorRealmentePago >= 520) {
                             statusPagamento = '✅ QUITADO';
                             statusClass = 'style="color: #4ade80; font-weight: bold;"';
-                        } else if (valorPago > 0) {
-                            statusPagamento = `🟡 ENTRADA PAGA`;
+                        } else if (valorRealmentePago > 0) {
+                            statusPagamento = `🟡 PAGAMENTO PARCIAL`;
                             statusClass = 'style="color: #fbbf24; font-weight: bold;"';
                         } else {
-                            statusPagamento = '🔴 PENDENTE PAGAMENTO';
+                            statusPagamento = '🔴 AGUARDANDO PAGAMENTO';
                             statusClass = 'style="color: #ef4444; font-weight: bold;"';
                         }
 
@@ -354,20 +365,20 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <strong style="color: #ff6b35;">✅ Pago:</strong><br>
-                                            <input type="text" id="pago-${participant.id}" value="${valorPago.toFixed(2).replace('.', ',')}" onchange="updatePaidAmount(${participant.id})" oninput="formatCurrencyInput(this)" style="background: #222; color: #4ade80; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 0.8em; font-weight: bold; width: 60px;">
+                                            <strong style="color: #ff6b35;">📋 Previsão:</strong><br>
+                                            <input type="text" id="previsao-${participant.id}" value="${valorPrevisao.toFixed(2).replace('.', ',')}" onchange="updatePrevisao(${participant.id})" oninput="formatCurrencyInput(this)" style="background: #222; color: #60a5fa; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 0.8em; font-weight: bold; width: 60px;" title="Valor previsto no cadastro">
                                         </div>
                                         <div>
-                                            <strong style="color: #ff6b35;">⏳ Pendente:</strong><br>
-                                            <input type="text" id="pendente-${participant.id}" value="${saldoRestante.toFixed(2).replace('.', ',')}" onchange="updatePendingAmount(${participant.id})" oninput="formatCurrencyInput(this)" style="background: #222; color: ${saldoRestante > 0 ? '#ef4444' : '#4ade80'}; border: 1px solid #444; border-radius: 4px; padding: 2px; font-size: 0.8em; font-weight: bold; width: 60px;">
+                                            <strong style="color: #ff6b35;">⏳ A Receber:</strong><br>
+                                            <span style="color: ${saldoRestante > 0 ? '#ef4444' : '#4ade80'}; font-weight: bold; font-size: 0.9em;">R$ ${saldoRestante.toFixed(2).replace('.', ',')}</span>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <!-- BOTÃO DE AÇÃO PRINCIPAL -->
                                 <div style="text-align: center; margin-top: 12px;">
-                                    <button onclick="processQuickPayment(${participant.id})" style="background: linear-gradient(45deg, #ff6b35, #ff8a5b); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 0.9em; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease; width: 100%;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(255, 107, 53, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
-                                        ${saldoRestante > 0 ? '💰 RECEBER PAGAMENTO & IMPRIMIR' : '🖨️ REIMPRIMIR RECIBO'}
+                                    <button onclick="processQuickPayment(${participant.id}, ${valorPrevisao})" style="background: linear-gradient(45deg, #ff6b35, #ff8a5b); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 0.9em; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease; width: 100%;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(255, 107, 53, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+                                        ${valorRealmentePago > 0 ? '💰 RECEBER MAIS & IMPRIMIR' : '💰 RECEBER PAGAMENTO & IMPRIMIR'}
                                     </button>
                                 </div>
                                 
@@ -407,61 +418,27 @@
             input.value = value;
         }
 
-        async function updatePaidAmount(participantId) {
+        // NOVA FUNÇÃO PARA ATUALIZAR PREVISÃO:
+        async function updatePrevisao(participantId) {
             try {
-                const newPaidValue = document.getElementById(`pago-${participantId}`).value;
-                const pendingInput = document.getElementById(`pendente-${participantId}`);
+                const newPrevisaoValue = document.getElementById(`previsao-${participantId}`).value;
                 
-                const paidAmount = parseFloat(newPaidValue.replace(',', '.'));
-                const newPending = 520 - paidAmount;
-                pendingInput.value = newPending.toFixed(2).replace('.', ',');
-                
-                pendingInput.style.color = newPending > 0 ? '#ef4444' : '#4ade80';
-                
+                // Atualizar apenas o valor previsto no banco (sem alterar status)
                 const { error } = await supabase
                     .from('inscricoes')
                     .update({
-                        valor_pago: newPaidValue,
-                        status_pagamento: paidAmount >= 520 ? 'QUITADO' : (paidAmount > 0 ? 'ENTRADA-PAGA' : 'PENDENTE')
+                        valor_pago: newPrevisaoValue
                     })
                     .eq('id', participantId);
 
                 if (error) throw error;
                 
-                console.log(`✅ Valor pago atualizado para R$ ${newPaidValue}`);
-                showQuickMessage(`💰 Valor pago atualizado: R$ ${newPaidValue}`, 'success');
+                console.log(`✅ Previsão atualizada para R$ ${newPrevisaoValue}`);
+                showQuickMessage(`📋 Previsão atualizada: R$ ${newPrevisaoValue}`, 'success');
                 
             } catch (error) {
-                console.error('❌ Erro ao atualizar valor pago:', error);
-                showQuickMessage('❌ Erro ao atualizar valor pago', 'error');
-            }
-        }
-
-        async function updatePendingAmount(participantId) {
-            try {
-                const newPendingValue = document.getElementById(`pendente-${participantId}`).value;
-                const paidInput = document.getElementById(`pago-${participantId}`);
-                
-                const pendingAmount = parseFloat(newPendingValue.replace(',', '.'));
-                const newPaid = 520 - pendingAmount;
-                paidInput.value = newPaid.toFixed(2).replace('.', ',');
-                
-                const { error } = await supabase
-                    .from('inscricoes')
-                    .update({
-                        valor_pago: newPaid.toFixed(2).replace('.', ','),
-                        status_pagamento: newPaid >= 520 ? 'QUITADO' : (newPaid > 0 ? 'ENTRADA-PAGA' : 'PENDENTE')
-                    })
-                    .eq('id', participantId);
-
-                if (error) throw error;
-                
-                console.log(`✅ Saldo pendente atualizado para R$ ${newPendingValue}`);
-                showQuickMessage(`⏳ Saldo pendente atualizado: R$ ${newPendingValue}`, 'success');
-                
-            } catch (error) {
-                console.error('❌ Erro ao atualizar saldo pendente:', error);
-                showQuickMessage('❌ Erro ao atualizar saldo pendente', 'error');
+                console.error('❌ Erro ao atualizar previsão:', error);
+                showQuickMessage('❌ Erro ao atualizar previsão', 'error');
             }
         }
 
@@ -491,7 +468,7 @@
         // PROCESSAMENTO RÁPIDO DE PAGAMENTO (CORRIGIDO)
         // ===================================
         
-        async function processQuickPayment(participantId) {
+        async function processQuickPayment(participantId, valorPrevisao) {
             try {
                 console.log('⚡ Processamento rápido de pagamento...');
                 
@@ -504,67 +481,73 @@
                 if (error) throw error;
 
                 const participant = data;
-                const valorJaPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+                
+                // NOVA LÓGICA: Determinar valor realmente pago baseado no status
+                let valorJaPago = 0;
+                if (participant.status_pagamento === 'QUITADO' || participant.status_pagamento === 'ENTRADA-PAGA') {
+                    valorJaPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+                }
+                
                 const saldoRestante = 520 - valorJaPago;
+                const valorPrevisaoAtual = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
 
-                if (saldoRestante > 0) {
-                    // PERGUNTAR QUANTO VAI PAGAR (não assumir quitação total)
-                    const valorAReceber = prompt(`💰 QUANTO VAI PAGAR AGORA?\n\n👤 ${participant.nome_completo}\n💰 Saldo pendente: R$ ${saldoRestante.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n💵 Digite o valor a receber:`);
-                    
-                    if (!valorAReceber || valorAReceber.trim() === '') return;
+                // PERGUNTA QUANTO VAI PAGAR COM O VALOR PREENCHIDO
+                const valorAReceber = prompt(`💰 QUANTO VAI PAGAR AGORA?\n\n👤 ${participant.nome_completo}\n💰 Total a receber: R$ ${saldoRestante.toFixed(2).replace('.', ',')}\n📋 Valor previsto: R$ ${valorPrevisaoAtual.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n💵 Digite o valor a receber:`, valorPrevisaoAtual.toFixed(2).replace('.', ','));
+                
+                if (!valorAReceber || valorAReceber.trim() === '') return;
 
-                    // Converter e validar valor
-                    const valorRecebido = parseFloat(valorAReceber.replace(',', '.'));
-                    
-                    if (isNaN(valorRecebido) || valorRecebido <= 0) {
-                        alert('❌ Valor inválido! Digite um valor válido.');
-                        return;
-                    }
-
-                    if (valorRecebido > saldoRestante) {
-                        alert(`❌ Valor maior que o saldo pendente!\nSaldo: R$ ${saldoRestante.toFixed(2).replace('.', ',')}`);
-                        return;
-                    }
-
-                    // Confirmar pagamento
-                    const confirmar = confirm(`💰 CONFIRMAR PAGAMENTO?\n\n👤 ${participant.nome_completo}\n💰 Valor a receber: R$ ${valorRecebido.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n✅ Confirmar e imprimir recibo?`);
-                    
-                    if (!confirmar) return;
-
-                    // Calcular novo total
-                    const novoTotal = valorJaPago + valorRecebido;
-                    const novoSaldo = 520 - novoTotal;
-
-                    // Determinar status correto
-                    let novoStatus;
-                    if (novoTotal >= 520) {
-                        novoStatus = 'QUITADO';
-                    } else if (novoTotal > 0) {
-                        novoStatus = 'ENTRADA-PAGA';
-                    } else {
-                        novoStatus = 'PENDENTE';
-                    }
-
-                    // Atualizar no banco com valores corretos
-                    const { error: updateError } = await supabase
-                        .from('inscricoes')
-                        .update({
-                            valor_pago: novoTotal.toFixed(2).replace('.', ','),
-                            status_pagamento: novoStatus
-                        })
-                        .eq('id', participantId);
-
-                    if (updateError) throw updateError;
-
-                    showQuickMessage(`✅ Pagamento processado! R$ ${valorRecebido.toFixed(2).replace('.', ',')} recebido. Novo saldo: R$ ${novoSaldo.toFixed(2).replace('.', ',')}`, 'success');
-                    
-                    // Atualizar dados do participante para o recibo
-                    participant.valor_pago = novoTotal.toFixed(2).replace('.', ',');
-                    participant.status_pagamento = novoStatus;
-                    participant.valor_recebido_hoje = valorRecebido; // NOVO CAMPO para o recibo
+                // Converter e validar valor
+                const valorRecebido = parseFloat(valorAReceber.replace(',', '.'));
+                
+                if (isNaN(valorRecebido) || valorRecebido <= 0) {
+                    alert('❌ Valor inválido! Digite um valor válido.');
+                    return;
                 }
 
-                // Gerar recibo (funciona para pagamento parcial ou reimpressão)
+                if (valorRecebido > saldoRestante) {
+                    alert(`❌ Valor maior que o total a receber!\nTotal: R$ ${saldoRestante.toFixed(2).replace('.', ',')}`);
+                    return;
+                }
+
+                // Confirmar pagamento
+                const confirmar = confirm(`💰 CONFIRMAR PAGAMENTO?\n\n👤 ${participant.nome_completo}\n💰 Valor a receber: R$ ${valorRecebido.toFixed(2).replace('.', ',')}\n💳 Forma: ${participant.forma_pagamento}\n\n✅ Confirmar e imprimir recibo?`);
+                
+                if (!confirmar) return;
+
+                // Calcular novo total (agora sim, somando ao que realmente foi pago)
+                const novoTotal = valorJaPago + valorRecebido;
+                const novoSaldo = 520 - novoTotal;
+
+                // Determinar status correto
+                let novoStatus;
+                if (novoTotal >= 520) {
+                    novoStatus = 'QUITADO';
+                } else if (novoTotal > 0) {
+                    novoStatus = 'ENTRADA-PAGA';
+                } else {
+                    novoStatus = 'PENDENTE';
+                }
+
+                // Atualizar no banco com valores corretos
+                const { error: updateError } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        valor_pago: novoTotal.toFixed(2).replace('.', ','),
+                        status_pagamento: novoStatus
+                    })
+                    .eq('id', participantId);
+
+                if (updateError) throw updateError;
+
+                showQuickMessage(`✅ Pagamento processado! R$ ${valorRecebido.toFixed(2).replace('.', ',')} recebido. Novo saldo: R$ ${novoSaldo.toFixed(2).replace('.', ',')}`, 'success');
+                
+                // Atualizar dados do participante para o recibo
+                participant.valor_pago = novoTotal.toFixed(2).replace('.', ',');
+                participant.status_pagamento = novoStatus;
+                participant.valor_recebido_hoje = valorRecebido;
+                participant.valor_total_pago = novoTotal; // Para o recibo
+
+                // Gerar recibo
                 generateQuickReceipt(participant);
                 
             } catch (error) {
@@ -664,7 +647,7 @@
                             `}
                             
                             <div style="text-align: center; margin-top: 10px; border-top: 1px dashed black; padding-top: 5px; font-size: 10px;">
-                                <div>Parabéns pelo seu posicionamento!!</div>
+                                <div>Obrigado pela sua participacao!</div>
                                 <div style="font-weight: bold;">ALVO CHURCH</div>
                             </div>
                         </div>
@@ -832,8 +815,12 @@
         }
 
         function showParticipantDetails(participant) {
-            const valorPago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
-            const saldoRestante = 520 - valorPago;
+            // Aplicar lógica corrigida também nos detalhes
+            let valorRealmentePago = 0;
+            if (participant.status_pagamento === 'QUITADO' || participant.status_pagamento === 'ENTRADA-PAGA') {
+                valorRealmentePago = parseFloat(participant.valor_pago?.replace(',', '.') || '0');
+            }
+            const saldoRestante = 520 - valorRealmentePago;
             
             let datasRetiro = '';
             if (participant.genero === 'HOMEM') {
@@ -911,7 +898,7 @@
                                     </div>
                                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                                         <span style="color: #ccc;">Já Pago:</span>
-                                        <span style="color: #4ade80; font-weight: bold;">R$ ${valorPago.toFixed(2).replace('.', ',')}</span>
+                                        <span style="color: #4ade80; font-weight: bold;">R$ ${valorRealmentePago.toFixed(2).replace('.', ',')}</span>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; font-size: 1.1em; font-weight: bold; border-top: 1px solid #555; padding-top: 8px;">
                                         <span style="color: #ff6b35;">Saldo Restante:</span>
@@ -993,10 +980,10 @@
         // ===================================
         
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Sistema de Balcão com Edição Rápida carregado!');
+            console.log('🚀 Sistema de Balcão FINAL carregado!');
             
             if (initializeSupabase()) {
-                console.log('✅ Sistema pronto para uso com edição rápida!');
+                console.log('✅ Sistema pronto para uso com lógica corrigida!');
             } else {
                 alert('Erro ao conectar com o banco de dados');
             }
@@ -1027,8 +1014,8 @@
         // FUNÇÃO DE TESTE
         // ===================================
         
-        window.testarSistemaRapido = async function() {
-            console.log('🧪 Testando sistema com edição rápida...');
+        window.testarSistemaFinal = async function() {
+            console.log('🧪 Testando sistema FINAL...');
             
             try {
                 const { count, error } = await supabase
@@ -1047,13 +1034,17 @@
                 if (data && data.length > 0) {
                     console.log('📋 Exemplos no banco de dados:');
                     data.forEach(p => {
-                        const valorPago = parseFloat(p.valor_pago?.replace(',', '.') || '0');
-                        const saldo = 520 - valorPago;
-                        console.log(`   • ${p.nome_completo} (${p.genero}) - Pago: R$ ${valorPago.toFixed(2)} - Saldo: R$ ${saldo.toFixed(2)}`);
+                        const valorPrevisao = parseFloat(p.valor_pago?.replace(',', '.') || '0');
+                        let valorRealPago = 0;
+                        if (p.status_pagamento === 'QUITADO' || p.status_pagamento === 'ENTRADA-PAGA') {
+                            valorRealPago = valorPrevisao;
+                        }
+                        const saldo = 520 - valorRealPago;
+                        console.log(`   • ${p.nome_completo} (${p.genero}) - Previsão: R$ ${valorPrevisao.toFixed(2)} - Real Pago: R$ ${valorRealPago.toFixed(2)} - A Receber: R$ ${saldo.toFixed(2)}`);
                     });
                 }
                 
-                alert(`✅ Sistema com Pagamentos Corrigidos funcionando!\n\n📊 Total: ${count} inscrições\n\n🆕 CORREÇÕES:\n✏️ Pagamentos parciais corretos\n⚡ Valores calculados corretamente\n🖨️ Recibos com dados precisos\n💰 Status de pagamento correto`);
+                alert(`✅ Sistema FINAL funcionando perfeitamente!\n\n📊 Total: ${count} inscrições\n\n🎯 LÓGICA CORRIGIDA:\n📋 Previsão vs Valor Real Pago\n💰 Prompt preenchido com previsão\n⚡ Cálculos baseados no status correto\n🖨️ Recibos com valores precisos`);
                 
             } catch (error) {
                 console.error('❌ Erro no teste:', error);
@@ -1061,14 +1052,14 @@
             }
         };
 
-        console.log('🎯 Sistema de Balcão CORRIGIDO carregado!');
-        console.log('📋 CORREÇÕES implementadas:');
-        console.log('   ✅ Pergunta valor exato a receber');
-        console.log('   ✅ Não quita automaticamente');
-        console.log('   ✅ Recibo mostra valor recebido hoje');
-        console.log('   ✅ Cálculos de saldo corretos');
-        console.log('   ✅ Status baseado no valor real pago');
-        console.log('\n💡 Para testar: testarSistemaRapido()');
+        console.log('🎯 Sistema de Balcão FINAL carregado!');
+        console.log('📋 LÓGICA CORRIGIDA:');
+        console.log('   📋 Campo "Previsão" (azul) - editável');
+        console.log('   ⏳ Campo "A Receber" - calculado automaticamente');
+        console.log('   💰 Prompt vem preenchido com valor da previsão');
+        console.log('   🎯 Status baseado em pagamentos reais processados');
+        console.log('   🖨️ Recibos mostram "Valor Recebido Hoje"');
+        console.log('\n💡 Para testar: testarSistemaFinal()');
     </script>
 </body>
 </html>
