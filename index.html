@@ -1832,81 +1832,171 @@ Data Inscrição: ${Utils.formatDateTime(participant.data_inscricao)}
         };
 
         // ===== SISTEMA DE GANHADORES =====
-        const WinnersManager = {
-            async generate() {
-                try {
-                    LoadingManager.show('Gerando lista de ganhadores...');
+const WinnersManager = {
+    async generate() {
+        try {
+            LoadingManager.show('Gerando lista de ganhadores...');
+            
+            const winners = AppState.allParticipants
+                .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
+                .slice(0, 150);
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <p style="color: var(--text-light); line-height: 1.6;">Lista dos primeiros 150 participantes que efetuaram pagamento (parcial ou completo), por ordem de confirmação de pagamento.</p>
+                    <p style="color: var(--warning); font-weight: bold; margin-top: 10px;">Total de ganhadores: ${winners.length}/150</p>
+                </div>
+                
+                <div style="max-height: 60vh; overflow-y: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th>Nome</th>
+                                <th style="width: 80px;">Sexo</th>
+                                <th style="width: 120px;">WhatsApp</th>
+                                <th style="width: 120px;">Status</th>
+                                <th style="width: 140px;">Data Pagamento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${winners.map((participant, index) => `
+                                <tr onclick="ParticipantManager.showDetails('${participant.id}')" style="cursor: pointer;">
+                                    <td style="font-weight: bold; color: var(--primary);">${index + 1}</td>
+                                    <td style="font-weight: 500;">${participant.nome_completo}</td>
+                                    <td>${participant.sexo}</td>
+                                    <td>${participant.whatsapp}</td>
+                                    <td><span class="status-badge status-${participant.status_pagamento?.toLowerCase().replace(/\s+/g, '-')}">${Utils.getStatusText(participant.status_pagamento)}</span></td>
+                                    <td>${Utils.formatDateTime(participant.data_confirmacao_pagamento)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('winners-content').innerHTML = content;
+            ModalManager.open('winners-modal');
+
+        } catch (error) {
+            console.error('Erro ao gerar lista de ganhadores:', error);
+            NotificationManager.show('Erro ao gerar lista de ganhadores', 'error');
+        } finally {
+            LoadingManager.hide();
+        }
+    },
+
+    export() {
+        try {
+            const winners = AppState.allParticipants
+                .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
+                .slice(0, 150);
+
+            const winnersData = winners.map((p, index) => ({
+                'Posição': index + 1,
+                'Nome': p.nome_completo,
+                'WhatsApp': p.whatsapp,
+                'Sexo': p.sexo,
+                'Status': Utils.getStatusText(p.status_pagamento),
+                'Data Pagamento': Utils.formatDateTime(p.data_confirmacao_pagamento)
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(winnersData);
+            
+            ws['!cols'] = [
+                { wch: 8 },  // Posição
+                { wch: 30 }, // Nome
+                { wch: 15 }, // WhatsApp
+                { wch: 10 }, // Sexo
+                { wch: 15 }, // Status
+                { wch: 18 }  // Data Pagamento
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Ganhadores de Camisa');
+            XLSX.writeFile(wb, `ganhadores_camisa_retiro_2025_${new Date().toISOString().split('T')[0]}.xlsx`);
+            
+            NotificationManager.show('Lista de ganhadores exportada com sucesso!', 'success');
+        } catch (error) {
+            console.error('Erro ao exportar ganhadores:', error);
+            NotificationManager.show('Erro ao exportar lista de ganhadores', 'error');
+        }
+    },
+
+    print() {
+        try {
+            const winners = AppState.allParticipants
+                .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
+                .slice(0, 150);
+
+            const printContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #ff6b35; margin-bottom: 10px;">🏕️ O RETIRO 2025</h1>
+                        <h2 style="margin-bottom: 10px;">🏆 LISTA DOS 150 GANHADORES DE CAMISA</h2>
+                        <p style="margin-bottom: 5px;">ALVO - UMA IGREJA QUE PENSA</p>
+                        <p>Total: ${winners.length}/150 ganhadores</p>
+                    </div>
                     
-                    const winners = AppState.allParticipants
-                        .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
-                        .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
-                        .slice(0, 150);
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead>
+                            <tr style="background: #ff6b35; color: white;">
+                                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">#</th>
+                                <th style="border: 1px solid #ddd; padding: 6px;">Nome</th>
+                                <th style="border: 1px solid #ddd; padding: 6px;">WhatsApp</th>
+                                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Sexo</th>
+                                <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">Data Pagamento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${winners.map((p, index) => `
+                                <tr style="${index % 2 === 0 ? 'background: #f9f9f9;' : ''}">
+                                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-weight: bold;">${index + 1}</td>
+                                    <td style="border: 1px solid #ddd; padding: 6px;">${p.nome_completo}</td>
+                                    <td style="border: 1px solid #ddd; padding: 6px;">${p.whatsapp}</td>
+                                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${p.sexo}</td>
+                                    <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">${Utils.formatDateTime(p.data_confirmacao_pagamento)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
+                        Gerado em ${Utils.formatDateTime(new Date())} - Sistema de Balcão O Retiro 2025
+                    </div>
+                </div>
+            `;
 
-                    const content = `
-                        <div style="margin-bottom: 20px;">
-                            <p style="color: var(--text-light); line-height: 1.6;">Lista dos primeiros 150 participantes que efetuaram pagamento (parcial ou completo), por ordem de confirmação de pagamento.</p>
-                            <p style="color: var(--warning); font-weight: bold; margin-top: 10px;">Total de ganhadores: ${winners.length}/150</p>
-                        </div>
-                        
-                        <div style="max-height: 60vh; overflow-y: auto;">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 60px;">#</th>
-                                        <th>Nome</th>
-                                        <th style="width: 80px;">Sexo</th>
-                                        <th style="width: 120px;">WhatsApp</th>
-                                        <th style="width: 120px;">Status</th>
-                                        <th style="width: 140px;">Data Pagamento</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${winners.map((participant, index) => `
-                                        <tr onclick="ParticipantManager.showDetails('${participant.id}')" style="cursor: pointer;">
-                                            <td style="font-weight: bold; color: var(--primary);">${index + 1}</td>
-                                            <td style="font-weight: 500;">${participant.nome_completo}</td>
-                                            <td>${participant.sexo}</td>
-                                            <td>${participant.whatsapp}</td>
-                                            <td><span class="status-badge status-${participant.status_pagamento?.toLowerCase().replace(/\s+/g, '-')}">${Utils.getStatusText(participant.status_pagamento)}</span></td>
-                                            <td>${Utils.formatDateTime(participant.data_confirmacao_pagamento)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                            
-                            <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
-                                Gerado em ${Utils.formatDateTime(new Date())} - Sistema de Balcão O Retiro 2025
-                            </div>
-                        </div>
-                    `;
-
-                    const printWindow = window.open('', '_blank');
-                    printWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <title>Lista de Ganhadores - O Retiro 2025</title>
-                            <style>
-                                @media print {
-                                    @page { size: A4; margin: 15mm; }
-                                    body { margin: 0; }
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            ${printContent}
-                        </body>
-                        </html>
-                    `);
-                    printWindow.document.close();
-                    printWindow.focus();
-                    setTimeout(() => printWindow.print(), 250);
-                } catch (error) {
-                    console.error('Erro ao imprimir ganhadores:', error);
-                    NotificationManager.show('Erro ao imprimir lista de ganhadores', 'error');
-                }
-            }
-        };
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Lista de Ganhadores - O Retiro 2025</title>
+                    <style>
+                        @media print {
+                            @page { size: A4; margin: 15mm; }
+                            body { margin: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 250);
+        } catch (error) {
+            console.error('Erro ao imprimir ganhadores:', error);
+            NotificationManager.show('Erro ao imprimir lista de ganhadores', 'error');
+        }
+    }
+};
 
         // ===== SISTEMA DE EXPORTAÇÃO OTIMIZADO =====
         const ExportManager = {
