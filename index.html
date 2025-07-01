@@ -1838,7 +1838,7 @@ const WinnersManager = {
             LoadingManager.show('Gerando lista de ganhadores...');
             
             const winners = AppState.allParticipants
-               .filter(p => p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO')
+              .filter(p => p.data_confirmacao_pagamento)
                .sort((a, b) => new Date(a.data_inscricao) - new Date(b.data_inscricao))
                 .slice(0, 150);
 
