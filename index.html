@@ -6,1372 +6,1735 @@
     <title>Sistema de Balcão - O Retiro 2025</title>
     <style>
         :root {
-            --primary-color: #ff6b35;
-            --secondary-color: #4a90e2;
-            --success-color: #28a745;
-            --warning-color: #ffc107;
-            --danger-color: #dc3545;
-            --dark-bg: #1a1a1a;
-            --card-bg: #2d2d2d;
-            --text-light: #ffffff;
-            --text-muted: #cccccc;
-            --border-color: #444;
-            --gradient-bg: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            --primary: #ff6b35;
+            --primary-light: #ff8a5b;
+            --primary-dark: #ff4500;
+            --bg-dark: #1a1a1a;
+            --bg-medium: #2d2d2d;
+            --bg-light: #333;
+            --text-light: #ccc;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #fbbf24;
+            --info: #3b82f6;
+            --border-radius: 8px;
+            --shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--dark-bg);
-            color: var(--text-light);
-            line-height: 1.6;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), var(--bg-medium));
             min-height: 100vh;
-        }
-
-        .header {
-            background: var(--gradient-bg);
-            padding: 1rem 2rem;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            position: relative;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .user-info {
-            position: absolute;
-            top: 1rem;
-            right: 2rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: rgba(0,0,0,0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 10px;
-        }
-
-        .user-name {
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .logout-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Componentes reutilizáveis */
+        .btn {
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 12px 20px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 0.8rem;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .control-panel {
-            background: var(--gradient-bg);
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
+            display: inline-block;
             text-align: center;
         }
-
-        .control-panel h2 {
-            margin-bottom: 2rem;
-            font-size: 1.8rem;
+        
+        .btn-primary { background: linear-gradient(45deg, var(--primary), var(--primary-light)); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-secondary { background: #6b7280; color: white; }
+        
+        .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        
+        .input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--bg-light);
+            border-radius: var(--border-radius);
+            background: #222;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
         }
-
+        
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--bg-light);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+        
+        .card {
+            background: #111;
+            border: 2px solid var(--bg-light);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Layout específico */
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--bg-dark), var(--bg-medium));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .main-system { display: none; }
+        
+        .header {
+            background: #000;
+            padding: 20px;
+            text-align: center;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px solid var(--bg-light);
+            position: relative;
+        }
+        
+        .user-info {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stats-panel {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 3px solid var(--primary-dark);
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+        }
+        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: 20px;
+            margin-top: 20px;
         }
-
-        .stat-card {
-            background: rgba(255,255,255,0.1);
-            padding: 1.5rem;
+        
+        .stats-item {
+            background: rgba(255,255,255,0.2);
             border-radius: 10px;
-            text-align: center;
+            padding: 15px;
             backdrop-filter: blur(10px);
+            text-align: center;
         }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .action-buttons {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1rem;
-        }
-
-        .btn {
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: var(--secondary-color);
-            color: white;
-        }
-
-        .btn-warning {
-            background: var(--warning-color);
-            color: #000;
-        }
-
-        .btn-success {
-            background: var(--success-color);
-            color: white;
-        }
-
-        .btn-danger {
-            background: var(--danger-color);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .search-section {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .search-box {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 1rem 1rem 1rem 3rem;
-            font-size: 1.1rem;
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            background: var(--dark-bg);
-            color: var(--text-light);
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            font-size: 1.2rem;
-        }
-
-        .results-section {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .results-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .participant-card {
-            background: var(--dark-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .participant-card:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-        }
-
-        .participant-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .participant-name {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: var(--text-light);
-            flex: 1;
-        }
-
-        .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .status-aguardando {
-            background: #ffc107;
-            color: #000;
-        }
-
-        .status-parcial {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .status-pago {
-            background: #28a745;
-            color: white;
-        }
-
-        .participant-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .info-icon {
-            color: var(--primary-color);
-        }
-
-        .participant-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .btn-small {
-            padding: 0.7rem 1rem;
-            font-size: 0.9rem;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            margin: 5% auto;
-            padding: 2rem;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .modal-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .close {
-            color: var(--text-muted);
-            font-size: 2rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-        .close:hover {
-            color: var(--text-light);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-            color: var(--text-light);
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            background: var(--dark-bg);
-            color: var(--text-light);
-            font-size: 1rem;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        .form-row {
+        
+        .main-layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 30px;
+            margin-bottom: 30px;
         }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
+        
+        .person-card {
+            background: #222;
+            border: 2px solid var(--bg-light);
             border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .person-card:hover {
+            border-color: var(--primary);
+            background: var(--bg-light);
+            transform: translateY(-2px);
+        }
+        
+        .details-modal .modal-content {
+            background: #111;
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
             color: white;
-            font-weight: bold;
-            z-index: 1001;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
         }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification.success {
-            background: var(--success-color);
-        }
-
-        .notification.error {
-            background: var(--danger-color);
-        }
-
-        .notification.warning {
-            background: var(--warning-color);
-            color: #000;
-        }
-
-        .loading {
+        
+        .dashboard-container {
             display: none;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: #111;
+            border: 2px solid var(--bg-light);
+            border-radius: 15px;
+            padding: 20px;
             text-align: center;
-            padding: 2rem;
+            transition: all 0.3s ease;
         }
-
-        .spinner {
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+        
+        .metric-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
         }
-
+        
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .metric-label {
+            color: var(--text-light);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .chart-container {
+            background: #111;
+            border: 2px solid var(--bg-light);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        /* Recibo */
+        .receipt-modal .modal-content {
+            background: white;
+            color: black;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .receipt-content {
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .receipt-header {
+            border-bottom: 2px dashed #333;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .receipt-footer {
+            border-top: 2px dashed #333;
+            padding-top: 15px;
+            margin-top: 15px;
+            font-size: 0.8em;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 1200px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .user-info { position: static; margin-bottom: 15px; justify-content: center; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+        
+        /* Animações */
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .hidden {
-            display: none !important;
+        
+        .loading {
+            border: 4px solid var(--bg-light);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
         }
-
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: var(--dark-bg);
-        }
-
-        .login-card {
-            background: var(--card-bg);
-            padding: 3rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 400px;
-            border: 2px solid var(--primary-color);
-        }
-
-        .login-title {
+        
+        /* Estado de erro */
+        .error {
+            background: #660000;
+            color: #ff6666;
+            border: 1px solid #cc0000;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
             text-align: center;
-            font-size: 2rem;
-            margin-bottom: 2rem;
-            color: var(--primary-color);
+            display: none;
         }
-
-        .confirmation-popup {
+        
+        /* Notificações */
+        .notification {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            color: black;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 1002;
-            text-align: center;
-            min-width: 300px;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            font-weight: bold;
+            box-shadow: var(--shadow);
+            animation: slideInRight 0.3s ease;
+            transition: all 0.3s ease;
         }
-
-        .confirmation-popup h3 {
-            margin-bottom: 1rem;
-            color: var(--primary-color);
+        
+        .notification.success { background: var(--success); color: white; }
+        .notification.error { background: var(--danger); color: white; }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-
-        .confirmation-popup .btn {
-            margin: 0.5rem;
+        
+        /* Print styles */
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                display: block !important;
+            }
+            @page { size: 72mm auto; margin: 0; }
         }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .header {
-                padding: 1rem;
-            }
-            
-            .header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .user-info {
-                position: static;
-                justify-content: center;
-                margin-top: 1rem;
-            }
-            
-            .participant-actions {
-                grid-template-columns: 1fr;
-            }
-            
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
+        
+        /* Tabelas */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
+        
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--bg-light);
+        }
+        
+        .table th {
+            background: var(--bg-light);
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .table tr:hover {
+            background: rgba(255, 107, 53, 0.1);
+        }
+        
+        /* Status badges */
+        .status-pendente { background: var(--danger); }
+        .status-pago-parcialmente { background: var(--warning); }
+        .status-pago { background: var(--success); }
     </style>
 </head>
 <body>
-    <!-- Tela de Login -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-card">
-            <h2 class="login-title">🔐 Sistema de Balcão</h2>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label class="form-label">E-mail:</label>
-                    <input type="email" id="loginEmail" class="form-control" required>
+    <!-- Login Screen -->
+    <div id="login-container" class="login-container">
+        <div class="card" style="min-width: 400px; text-align: center;">
+            <h1 style="color: var(--primary); font-size: 2.5em; margin-bottom: 15px;">🔐 ACESSO</h1>
+            <p style="color: var(--text-light); margin-bottom: 30px;">Sistema de Balcão • O Retiro 2025</p>
+            
+            <form id="login-form">
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">👤 E-mail:</label>
+                    <input type="email" id="login-email" class="input" placeholder="seuemail@alvochurch.com" required>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Senha:</label>
-                    <input type="password" id="loginPassword" class="form-control" required>
+                
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">🔒 Senha:</label>
+                    <input type="password" id="login-password" class="input" placeholder="Digite sua senha" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    🚀 ENTRAR
+                
+                <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; padding: 18px;">
+                    🚀 ENTRAR NO SISTEMA
                 </button>
             </form>
+            
+            <div id="login-error" class="error">
+                ❌ <strong>Erro no login:</strong><br>
+                <span id="login-error-message">Verifique suas credenciais</span>
+            </div>
         </div>
     </div>
 
-    <!-- Tela Principal -->
-    <div id="mainScreen" class="hidden">
-        <!-- Header -->
-        <header class="header">
-            <div class="user-info">
-                <span class="user-name" id="userName"></span>
-                <button class="logout-btn" onclick="logout()">🚪 SAIR</button>
-            </div>
-            <h1>SISTEMA DE BALCÃO</h1>
-            <p>O RETIRO • GESTÃO DE PAGAMENTOS</p>
-        </header>
-
+    <!-- Main System -->
+    <div id="main-system" class="main-system">
         <div class="container">
-            <!-- Painel de Controle -->
-            <div class="control-panel">
-                <h2>📊 PAINEL DE CONTROLE</h2>
+            <!-- Header -->
+            <div class="header">
+                <div class="user-info">
+                    <span>👤 <span id="user-name">Carregando...</span></span>
+                    <button onclick="logout()" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8em;">🚪 Sair</button>
+                </div>
+                
+                <div style="color: white; font-size: 1.2em; margin-bottom: 10px; letter-spacing: 2px;">ALVO - UMA IGREJA QUE PENSA</div>
+                <h1 style="color: var(--primary); font-size: 2.5em; font-weight: 900; margin-bottom: 10px;">SISTEMA DE BALCÃO</h1>
+                <div style="color: var(--text-light);">O RETIRO • GESTÃO DE PAGAMENTOS</div>
+            </div>
+
+            <!-- Painel de Estatísticas -->
+            <div class="stats-panel">
+                <h2 style="color: white; font-size: 2em; margin-bottom: 15px; text-align: center; text-transform: uppercase; letter-spacing: 3px;">
+                    📊 PAINEL DE CONTROLE
+                </h2>
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="statHomens">0</div>
-                        <div class="stat-label">Inscritos Homens</div>
+                    <div class="stats-item">
+                        <div style="font-size: 2.5em; font-weight: 900; color: white;" id="total-homens">0</div>
+                        <div style="color: white; font-weight: bold;">Inscritos Homens</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statMulheres">0</div>
-                        <div class="stat-label">Inscritas Mulheres</div>
+                    <div class="stats-item">
+                        <div style="font-size: 2.5em; font-weight: 900; color: white;" id="total-mulheres">0</div>
+                        <div style="color: white; font-weight: bold;">Inscritas Mulheres</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statTotal">0</div>
-                        <div class="stat-label">Total de Inscrições</div>
+                    <div class="stats-item">
+                        <div style="font-size: 2.5em; font-weight: 900; color: white;" id="total-inscricoes">0</div>
+                        <div style="color: white; font-weight: bold;">Total de Inscrições</div>
                     </div>
                 </div>
-                <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="openDashboard()">
-                        📊 DASHBOARD COMPLETO
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <button onclick="showDashboard()" class="btn btn-info" style="width: 100%; padding: 15px;">
+                        📈 DASHBOARD COMPLETO
                     </button>
-                    <button class="btn btn-warning" onclick="openWinnersList()">
+                    <button onclick="generateWinnersList()" class="btn btn-warning" style="width: 100%; padding: 15px;">
                         🏆 LISTA DE GANHADORES
                     </button>
                 </div>
             </div>
 
-            <!-- Seção de Busca -->
-            <div class="search-section">
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="searchInput" class="search-input" 
-                           placeholder="Digite o nome do participante..." 
-                           onkeyup="searchParticipants()">
+            <!-- Sistema Principal -->
+            <div id="main-content">
+                <div class="main-layout">
+                    <!-- Search Panel -->
+                    <div class="card">
+                        <h2 style="color: var(--primary); font-size: 1.5em; margin-bottom: 20px; text-align: center;">🔍 Buscar Participante</h2>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">Nome do Participante:</label>
+                            <input type="text" id="search-name" class="input" placeholder="Digite o nome para buscar...">
+                        </div>
+                        
+                        <button id="search-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+                            🔍 Buscar Participante
+                        </button>
+                        
+                        <div id="search-status" style="text-align: center; color: var(--text-light); margin-bottom: 20px;">
+                            Digite o nome e clique em buscar
+                        </div>
+
+                        <!-- Export Button -->
+                        <div style="padding-top: 20px; border-top: 2px solid var(--bg-light);">
+                            <button id="export-btn" class="btn btn-success" style="width: 100%;" onclick="exportToExcel()">
+                                📊 Exportar Base Completa (Excel)
+                            </button>
+                            <div style="text-align: center; margin-top: 8px; font-size: 0.8em; color: #666;">
+                                Baixa arquivo .xlsx com todos os dados
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Panel -->
+                    <div class="card">
+                        <h2 style="color: var(--primary); font-size: 1.5em; margin-bottom: 20px; text-align: center;">📋 Resultados da Busca</h2>
+                        
+                        <div id="results-container" style="max-height: 600px; overflow-y: auto;">
+                            <div style="text-align: center; padding: 40px; color: #666;">
+                                Nenhuma busca realizada ainda
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Resultados da Busca -->
-            <div class="results-section">
-                <div class="results-header">
-                    <span>📋</span>
-                    <span>RESULTADOS DA BUSCA</span>
+            <!-- Dashboard Container -->
+            <div id="dashboard-container" class="dashboard-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                    <h2 style="color: var(--primary); font-size: 2em;">📈 Dashboard de Fechamento</h2>
+                    <button onclick="hideDashboard()" class="btn btn-secondary">← Voltar</button>
                 </div>
-                <div id="searchResults">
-                    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                        Digite o nome de um participante para começar a busca...
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal de Cobrança -->
-    <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">💰 Cobrar Participante</h2>
-                <span class="close" onclick="closePaymentModal()">&times;</span>
-            </div>
-            <div id="paymentModalContent">
-                <!-- Conteúdo será preenchido dinamicamente -->
+                <!-- Filtros -->
+                <div class="card" style="margin-bottom: 30px;">
+                    <h3 style="color: var(--primary); margin-bottom: 15px;">🔍 Filtros</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <label style="color: white; margin-bottom: 5px; display: block;">📅 Data:</label>
+                            <input type="date" id="filter-data" class="input" onchange="updateDashboard()">
+                        </div>
+                        <div>
+                            <label style="color: white; margin-bottom: 5px; display: block;">👤 Atendente:</label>
+                            <select id="filter-atendente" class="input" onchange="updateDashboard()">
+                                <option value="">Todos os atendentes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color: white; margin-bottom: 5px; display: block;">💳 Forma de Pagamento:</label>
+                            <select id="filter-forma" class="input" onchange="updateDashboard()">
+                                <option value="">Todas as formas</option>
+                                <option value="PIX">PIX</option>
+                                <option value="DINHEIRO">Dinheiro</option>
+                                <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                                <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color: white; margin-bottom: 5px; display: block;">📊 Status:</label>
+                            <select id="filter-status" class="input" onchange="updateDashboard()">
+                                <option value="">Todos os status</option>
+                                <option value="PAGO PARCIALMENTE">Pago Parcialmente</option>
+                                <option value="PAGO">Pago</option>
+                                <option value="PENDENTE">Pendente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas Principais -->
+                <div class="dashboard-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="dash-total-inscricoes">0</div>
+                        <div class="metric-label">📊 Total Inscrições</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="dash-pre-inscricoes">0</div>
+                        <div class="metric-label">🎽 Pré-inscrições (R$ 150)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="dash-pagos-completo">0</div>
+                        <div class="metric-label">✅ Pagos Completo</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="dash-valor-pix">0</div>
+                        <div class="metric-label">🏦 PIX</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="dash-valor-dinheiro">0</div>
+                        <div class="metric-label">💵 Dinheiro</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="dash-valor-cartao">0</div>
+                        <div class="metric-label">💳 Cartão</div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Inscrições -->
+                <div class="chart-container">
+                    <h3 style="color: var(--primary); margin-bottom: 15px;">📋 Inscrições Detalhadas</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="table" id="inscricoes-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>WhatsApp</th>
+                                    <th>Sexo</th>
+                                    <th>Status Pagamento</th>
+                                    <th>Forma Pagamento</th>
+                                    <th>Atendente</th>
+                                    <th>Data Inscrição</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inscricoes-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Botões de Exportação -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <button onclick="exportDashboard()" class="btn btn-success">📊 Exportar Dashboard</button>
+                    <button onclick="exportInscricoes()" class="btn btn-info">📋 Exportar Inscrições</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Modal de Detalhes -->
-    <div id="detailsModal" class="modal">
+    <div id="details-modal" class="modal details-modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">📋 Detalhes Completos</h2>
-                <span class="close" onclick="closeDetailsModal()">&times;</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--primary); font-size: 1.8em;">📋 Detalhes Completos</h3>
+                <button onclick="closeDetailsModal()" class="btn btn-secondary" style="padding: 8px 15px;">❌ Fechar</button>
             </div>
-            <div id="detailsModalContent">
-                <!-- Conteúdo será preenchido dinamicamente -->
+            
+            <div id="details-content">
+                <!-- Conteúdo será carregado dinamicamente -->
             </div>
         </div>
     </div>
 
     <!-- Modal de E-mail -->
-    <div id="emailModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">📧 Enviar Comprovante por E-mail</h2>
-                <span class="close" onclick="closeEmailModal()">&times;</span>
+    <div id="email-modal" class="modal">
+        <div class="card" style="max-width: 500px; width: 90%;">
+            <h3 style="color: var(--primary); margin-bottom: 20px; text-align: center;">📧 Enviar Comprovante por E-mail</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">👤 Participante:</label>
+                <div id="email-participant-name" style="color: white; font-weight: bold; background: #222; padding: 10px; border-radius: 5px;"></div>
             </div>
-            <div id="emailModalContent">
-                <!-- Conteúdo será preenchido dinamicamente -->
+            
+            <div style="margin-bottom: 15px;">
+                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">📧 E-mail:</label>
+                <input type="email" id="email-input" class="input" placeholder="Digite o e-mail do participante">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">💰 Resumo da Inscrição:</label>
+                <div id="email-payment-summary" style="background: #222; padding: 10px; border-radius: 5px; font-size: 0.9em; color: var(--text-light);"></div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="sendEmailReceipt()" class="btn btn-success">📧 Enviar</button>
+                <button onclick="closeEmailModal()" class="btn btn-secondary">❌ Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- Loading -->
-    <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <p>Carregando...</p>
+    <!-- Modal de Lista de Ganhadores -->
+    <div id="winners-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--primary); font-size: 1.8em;">🏆 Lista dos 150 Ganhadores de Camisa</h3>
+                <button onclick="closeWinnersModal()" class="btn btn-secondary">❌ Fechar</button>
+            </div>
+            
+            <div id="winners-content" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Conteúdo será carregado dinamicamente -->
+            </div>
+            
+            <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <button onclick="exportWinners()" class="btn btn-success">📊 Exportar Lista</button>
+                <button onclick="printWinners()" class="btn btn-info">🖨️ Imprimir Lista</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Notificações -->
-    <div id="notification" class="notification"></div>
+    <!-- Modal de Atualização de Status -->
+    <div id="status-modal" class="modal">
+        <div class="card" style="max-width: 600px; width: 90%;">
+            <h3 style="color: var(--primary); margin-bottom: 20px; text-align: center;">💰 Atualizar Status de Pagamento</h3>
+            
+            <div id="status-participant-info" style="margin-bottom: 20px; padding: 15px; background: #222; border-radius: 8px;">
+                <!-- Informações do participante -->
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div>
+                    <label style="color: white; margin-bottom: 5px; display: block;">📊 Novo Status:</label>
+                    <select id="new-status" class="input" onchange="updateValueBasedOnStatus()">
+                        <option value="">Selecione...</option>
+                        <option value="PRÉ-INSCRIÇÃO">Pré-inscrição (R$ 150)</option>
+                        <option value="PAGO COMPLETO">Pago Completo (R$ 520)</option>
+                        <option value="PENDENTE">Pendente</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color: white; margin-bottom: 5px; display: block;">💳 Forma de Pagamento:</label>
+                    <select id="new-forma-pagamento" class="input">
+                        <option value="">Selecione...</option>
+                        <option value="PIX">PIX</option>
+                        <option value="DINHEIRO">Dinheiro</option>
+                        <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                        <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="color: white; margin-bottom: 5px; display: block;">💰 Valor Pago:</label>
+                <input type="text" id="new-valor-pago" class="input" placeholder="Ex: 150,00">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="updateParticipantStatus()" class="btn btn-success">✅ Atualizar</button>
+                <button onclick="closeStatusModal()" class="btn btn-secondary">❌ Cancelar</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Modal de Recibo -->
+    <div id="receipt-modal" class="modal receipt-modal">
+        <div class="modal-content">
+            <div id="receipt-content" class="receipt-content">
+                <!-- Conteúdo do recibo será inserido aqui -->
+            </div>
+            
+            <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <button onclick="printReceipt()" class="btn btn-info">🖨️ Imprimir</button>
+                <button onclick="emailReceiptFromModal()" class="btn btn-warning">📧 Enviar E-mail</button>
+                <button onclick="closeReceiptModal()" class="btn btn-secondary">❌ Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área de impressão (oculta) -->
+    <div id="receipt-print" style="display: none;">
+        <!-- Conteúdo do recibo será inserido aqui -->
+    </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script>
-        // Configurações do Supabase
+        // ===== CONFIGURAÇÃO SUPABASE (CONFIGURADO) =====
         const SUPABASE_URL = 'https://yuikwufjkdzgdzvlotaq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aWt3dWZqa2R6Z2R6dmxvdGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5ODcwMzcsImV4cCI6MjA2NjU2MzAzN30.UGW0AHHSsIv842Z92F6RjI930fgS-5FmPX0i7kumgYo';
-        
-        // Configuração do Resend
-        const RESEND_API_KEY = 're_arnckxhd_7xGQ1cuDeEpC8oBXGtMFHNH4';
-
-        // Inicializar Supabase
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Variáveis globais
+        // ===== CONFIGURAÇÃO RESEND (CONFIGURADO) =====
+        const RESEND_API_KEY = 're_arnckxhd_7xGQ1cuDeEpC8oBXGtMFHNH4';
+
+        // ===== VARIÁVEIS GLOBAIS =====
         let currentUser = null;
         let allParticipants = [];
         let currentParticipant = null;
+        let currentReceipt = null;
 
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Sistema iniciando...');
-            checkAuthState();
-            setupEventListeners();
+        // ===== FUNÇÕES UTILITÁRIAS =====
+        function convertToLocalTime(utcDate) {
+            const date = new Date(utcDate);
+            // Converter UTC para horário de Brasília (UTC-3)
+            date.setHours(date.getHours() - 3);
+            return date;
+        }
+
+        function formatDateTime(date) {
+            return new Intl.DateTimeFormat('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
+
+        // ===== SISTEMA DE AUTENTICAÇÃO =====
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await login();
         });
 
-        function setupEventListeners() {
-            // Login form
-            document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            
-            // Search input
-            document.getElementById('searchInput').addEventListener('input', debounce(searchParticipants, 300));
-            
-            // Modal clicks
-            window.addEventListener('click', function(event) {
-                if (event.target.classList.contains('modal')) {
-                    closeAllModals();
-                }
-            });
-        }
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const loginBtn = document.getElementById('login-btn');
+            const errorDiv = document.getElementById('login-error');
 
-        // Autenticação
-        async function checkAuthState() {
-            console.log('🔐 Verificando autenticação...');
-            
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                
-                if (session) {
-                    console.log('✅ Usuário autenticado:', session.user.email);
-                    currentUser = session.user;
-                    showMainScreen();
-                    await loadDashboardData();
-                } else {
-                    console.log('❌ Usuário não autenticado');
-                    showLoginScreen();
-                }
-            } catch (error) {
-                console.error('❌ Erro na verificação de autenticação:', error);
-                showLoginScreen();
-            }
-        }
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '🔄 Entrando...';
+            errorDiv.style.display = 'none';
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            console.log('🔑 Tentando login para:', email);
-            showLoading(true);
-            
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
-                
+
                 if (error) throw error;
-                
-                console.log('✅ Login realizado com sucesso');
+
                 currentUser = data.user;
-                showMainScreen();
-                await loadDashboardData();
-                showNotification('Login realizado com sucesso!', 'success');
+                document.getElementById('user-name').textContent = currentUser.email.split('@')[0];
                 
+                // Esconder login e mostrar sistema
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('main-system').style.display = 'block';
+                
+                // Carregar dados iniciais
+                await loadInitialData();
+                showNotification('Login realizado com sucesso!', 'success');
+
             } catch (error) {
-                console.error('❌ Erro no login:', error);
-                showNotification('Erro no login: ' + error.message, 'error');
+                console.error('Erro no login:', error);
+                document.getElementById('login-error-message').textContent = error.message;
+                errorDiv.style.display = 'block';
             } finally {
-                showLoading(false);
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '🚀 ENTRAR NO SISTEMA';
             }
         }
 
         async function logout() {
-            console.log('🚪 Fazendo logout...');
             await supabase.auth.signOut();
             currentUser = null;
-            allParticipants = [];
-            showLoginScreen();
+            document.getElementById('login-container').style.display = 'flex';
+            document.getElementById('main-system').style.display = 'none';
             showNotification('Logout realizado com sucesso!', 'success');
         }
 
-        function showLoginScreen() {
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('mainScreen').classList.add('hidden');
+        // ===== CARREGAMENTO DE DADOS =====
+        async function loadInitialData() {
+            try {
+                await Promise.all([
+                    loadParticipants(),
+                    updateStats(),
+                    loadAtendentes()
+                ]);
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                showNotification('Erro ao carregar dados iniciais', 'error');
+            }
         }
 
-        function showMainScreen() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('mainScreen').classList.remove('hidden');
-            document.getElementById('userName').textContent = currentUser.email;
-        }
-
-        // Carregamento de dados
-        async function loadDashboardData() {
-            console.log('📊 Carregando dados do dashboard...');
-            showLoading(true);
-            
+        async function loadParticipants() {
             try {
                 const { data, error } = await supabase
                     .from('inscricoes')
                     .select('*')
-                    .order('criado_em', { ascending: false });
-                
+                    .order('data_inscricao', { ascending: false });
+
                 if (error) throw error;
-                
                 allParticipants = data || [];
-                console.log(`✅ ${allParticipants.length} participantes carregados`);
-                
-                updateDashboardStats();
-                
+                console.log('Participantes carregados:', allParticipants.length);
             } catch (error) {
-                console.error('❌ Erro ao carregar dados:', error);
-                showNotification('Erro ao carregar dados: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
+                console.error('Erro ao carregar participantes:', error);
+                throw error;
             }
         }
 
-        function updateDashboardStats() {
-            console.log('📈 Atualizando estatísticas...');
-            
-            // Contar apenas quem pagou (parcial ou integral)
-            const paidParticipants = allParticipants.filter(p => {
-                const valorPago = parseFloat(p.valor_pago || 0);
-                return valorPago > 0;
-            });
-            
-            const homens = paidParticipants.filter(p => p.sexo === 'MASCULINO').length;
-            const mulheres = paidParticipants.filter(p => p.sexo === 'FEMININO').length;
-            const total = paidParticipants.length;
-            
-            console.log(`📊 Estatísticas: ${homens} homens, ${mulheres} mulheres, ${total} total`);
-            
-            document.getElementById('statHomens').textContent = homens;
-            document.getElementById('statMulheres').textContent = mulheres;
-            document.getElementById('statTotal').textContent = total;
+        async function loadAtendentes() {
+            try {
+                // Carregar lista única de atendentes
+                const atendentes = [...new Set(allParticipants.map(p => p.atendente).filter(a => a))];
+                const select = document.getElementById('filter-atendente');
+                
+                atendentes.forEach(atendente => {
+                    const option = document.createElement('option');
+                    option.value = atendente;
+                    option.textContent = atendente;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar atendentes:', error);
+            }
         }
 
-        // Busca de participantes
-        function searchParticipants() {
-            const searchTerm = document.getElementById('searchInput').value.trim().toUpperCase();
-            
-            if (searchTerm.length < 2) {
-                document.getElementById('searchResults').innerHTML = `
-                    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                        Digite pelo menos 2 caracteres para buscar...
-                    </p>
-                `;
+        // ===== SISTEMA DE BUSCA =====
+        document.getElementById('search-btn').addEventListener('click', searchParticipants);
+        document.getElementById('search-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchParticipants();
+        });
+
+        // Auto-maiúscula no campo de busca
+        document.getElementById('search-name').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+        async function searchParticipants() {
+            const searchTerm = document.getElementById('search-name').value.trim().toUpperCase();
+            const statusDiv = document.getElementById('search-status');
+            const resultsContainer = document.getElementById('results-container');
+
+            if (!searchTerm) {
+                statusDiv.textContent = 'Digite um nome para buscar';
                 return;
             }
+
+            statusDiv.innerHTML = '<div class="loading"></div>';
             
-            console.log('🔍 Buscando por:', searchTerm);
-            
-            const results = allParticipants.filter(participant => 
-                participant.nome_completo && 
-                participant.nome_completo.toUpperCase().includes(searchTerm)
-            );
-            
-            console.log(`🔍 ${results.length} resultados encontrados`);
-            displaySearchResults(results);
+            try {
+                // Buscar participantes que contenham o termo no nome
+                const filteredParticipants = allParticipants.filter(participant => 
+                    participant.nome_completo && participant.nome_completo.toUpperCase().includes(searchTerm)
+                );
+
+                if (filteredParticipants.length === 0) {
+                    statusDiv.textContent = 'Nenhum participante encontrado';
+                    resultsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhum resultado encontrado</div>';
+                    return;
+                }
+
+                statusDiv.textContent = `${filteredParticipants.length} participante(s) encontrado(s)`;
+                displaySearchResults(filteredParticipants);
+
+            } catch (error) {
+                console.error('Erro na busca:', error);
+                statusDiv.textContent = 'Erro na busca';
+                showNotification('Erro ao buscar participantes', 'error');
+            }
         }
 
-        function displaySearchResults(results) {
-            const container = document.getElementById('searchResults');
+        function displaySearchResults(participants) {
+            const container = document.getElementById('results-container');
             
-            if (results.length === 0) {
-                container.innerHTML = `
-                    <p style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                        Nenhum participante encontrado...
-                    </p>
-                `;
+            if (participants.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhum resultado encontrado</div>';
                 return;
             }
-            
-            container.innerHTML = results.map(participant => createParticipantCard(participant)).join('');
-        }
 
-        function createParticipantCard(participant) {
-            const status = getParticipantStatus(participant);
-            const statusClass = getStatusClass(status);
-            
-            return `
-                <div class="participant-card">
-                    <div class="participant-header">
-                        <div class="participant-name">${participant.nome_completo || 'Nome não informado'}</div>
-                        <div class="status-badge ${statusClass}">${status}</div>
-                    </div>
-                    <div class="participant-info">
-                        <div class="info-item">
-                            <span class="info-icon">📱</span>
-                            <span>WhatsApp: ${participant.whatsapp || 'Não informado'}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-icon">👤</span>
-                            <span>Sexo: ${participant.sexo || 'Não informado'}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-icon">💰</span>
-                            <span>Valor Pago: R$ ${participant.valor_pago || '0,00'}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-icon">💳</span>
-                            <span>Forma: ${participant.forma_pagamento || 'Não informado'}</span>
-                        </div>
-                    </div>
-                    <div class="participant-actions">
-                        <button class="btn btn-success btn-small" onclick="openPaymentModal(${participant.id})">
-                            💰 COBRAR
-                        </button>
-                        <button class="btn btn-primary btn-small" onclick="openDetailsModal(${participant.id})">
-                            📋 DETALHES
-                        </button>
-                        <button class="btn btn-warning btn-small" onclick="openEmailModal(${participant.id})">
-                            📧 E-MAIL
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
+            container.innerHTML = participants.map(participant => {
+                const statusClass = getStatusClass(participant.status_pagamento);
+                const statusText = getStatusText(participant.status_pagamento);
 
-        function getParticipantStatus(participant) {
-            const valorPago = parseFloat(participant.valor_pago || 0);
-            
-            if (valorPago === 0) {
-                return 'AGUARDANDO PAGAMENTO';
-            } else if (valorPago >= 520) {
-                return 'PAGO';
-            } else if (valorPago >= 150) {
-                return 'PAGAMENTO PARCIAL';
-            } else {
-                return 'AGUARDANDO PAGAMENTO';
-            }
+                return `
+                    <div class="person-card" onclick="showParticipantDetails('${participant.id}')">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="color: var(--primary); margin: 0;">${participant.nome_completo || 'Nome não informado'}</h3>
+                            <span class="btn btn-${statusClass}" style="padding: 5px 10px; font-size: 0.8em;">${statusText}</span>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: var(--text-light);">
+                            <div><strong>📱 WhatsApp:</strong> ${participant.whatsapp || 'Não informado'}</div>
+                            <div><strong>👥 Sexo:</strong> ${participant.sexo || 'Não informado'}</div>
+                            <div><strong>💰 Valor Pago:</strong> ${participant.valor_pago || 'Não informado'}</div>
+                            <div><strong>💳 Forma:</strong> ${participant.forma_pagamento || 'Não informado'}</div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                            <button onclick="event.stopPropagation(); openStatusModal('${participant.id}')" class="btn btn-success" style="padding: 8px; font-size: 0.8em;">
+                                💰 Atualizar
+                            </button>
+                            <button onclick="event.stopPropagation(); showParticipantDetails('${participant.id}')" class="btn btn-info" style="padding: 8px; font-size: 0.8em;">
+                                📋 Detalhes
+                            </button>
+                            <button onclick="event.stopPropagation(); openEmailModal('${participant.id}')" class="btn btn-warning" style="padding: 8px; font-size: 0.8em;">
+                                📧 E-mail
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function getStatusClass(status) {
-            switch (status) {
-                case 'AGUARDANDO PAGAMENTO':
-                    return 'status-aguardando';
-                case 'PAGAMENTO PARCIAL':
-                    return 'status-parcial';
-                case 'PAGO':
-                    return 'status-pago';
-                default:
-                    return 'status-aguardando';
+            switch(status) {
+                case 'PAGO': return 'success';
+                case 'PAGO PARCIALMENTE': return 'warning';
+                case 'PENDENTE': return 'danger';
+                default: return 'secondary';
             }
         }
 
-        // Modal de Cobrança
-        async function openPaymentModal(participantId) {
-            console.log('💰 Abrindo modal de cobrança para ID:', participantId);
-            
-            currentParticipant = allParticipants.find(p => p.id === participantId);
-            if (!currentParticipant) {
-                console.error('❌ Participante não encontrado');
-                return;
+        function getStatusText(status) {
+            switch(status) {
+                case 'PAGO': return 'PAGO';
+                case 'PAGO PARCIALMENTE': return 'PAGO PARCIALMENTE';
+                case 'PENDENTE': return 'PENDENTE';
+                default: return 'INDEFINIDO';
             }
-            
-            const valorAtual = parseFloat(currentParticipant.valor_pago || 0);
-            const valorRestante = 520 - valorAtual;
-            const valorSugerido = valorAtual === 0 ? 150 : valorRestante;
-            
-            document.getElementById('paymentModalContent').innerHTML = `
-                <div class="form-group">
-                    <h3>${currentParticipant.nome_completo}</h3>
-                    <p><strong>WhatsApp:</strong> ${currentParticipant.whatsapp}</p>
-                    <p><strong>Status Atual:</strong> ${getParticipantStatus(currentParticipant)}</p>
-                    <p><strong>Valor Já Pago:</strong> R$ ${valorAtual.toFixed(2)}</p>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">🏷️ Novo Status:</label>
-                        <select id="newStatus" class="form-control" onchange="updateSuggestedValue()">
-                            <option value="">Selecione...</option>
-                            <option value="PRE_INSCRICAO">Pré-inscrição (R$ 150)</option>
-                            <option value="PAGO_COMPLETO">Pago Completo (R$ 520)</option>
-                            <option value="PENDENTE">Pendente</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">💳 Forma de Pagamento:</label>
-                        <select id="paymentMethod" class="form-control">
-                            <option value="PIX">PIX</option>
-                            <option value="DINHEIRO">Dinheiro</option>
-                            <option value="CARTAO_CREDITO">Cartão de Crédito</option>
-                            <option value="CARTAO_DEBITO">Cartão de Débito</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">💰 Valor a Cobrar:</label>
-                    <input type="number" id="paymentAmount" class="form-control" 
-                           value="${valorSugerido.toFixed(2)}" step="0.01" min="0">
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
-                    <button class="btn btn-success" onclick="processPayment()">
-                        ✅ CONFIRMAR COBRANÇA
-                    </button>
-                    <button class="btn btn-danger" onclick="closePaymentModal()">
-                        ❌ CANCELAR
-                    </button>
+        }
+
+        // ===== MODAL DE ATUALIZAÇÃO DE STATUS =====
+        function openStatusModal(participantId) {
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (!participant) return;
+
+            currentParticipant = participant;
+
+            document.getElementById('status-participant-info').innerHTML = `
+                <h4 style="color: var(--primary); margin-bottom: 10px;">${participant.nome_completo}</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                    <div><strong>WhatsApp:</strong> ${participant.whatsapp}</div>
+                    <div><strong>Status Atual:</strong> ${getStatusText(participant.status_pagamento)}</div>
+                    <div><strong>Valor Pago:</strong> ${participant.valor_pago || 'N/A'}</div>
                 </div>
             `;
+
+            // Pré-preencher campos baseado no status atual
+            document.getElementById('new-status').value = '';
+            document.getElementById('new-forma-pagamento').value = participant.forma_pagamento || '';
+            document.getElementById('new-valor-pago').value = participant.valor_pago || '';
             
-            document.getElementById('paymentModal').style.display = 'block';
+            document.getElementById('status-modal').style.display = 'flex';
         }
 
-        function updateSuggestedValue() {
-            const status = document.getElementById('newStatus').value;
-            const amountInput = document.getElementById('paymentAmount');
-            const valorAtual = parseFloat(currentParticipant.valor_pago || 0);
+        function updateValueBasedOnStatus() {
+            const status = document.getElementById('new-status').value;
+            const valorField = document.getElementById('new-valor-pago');
             
-            switch (status) {
-                case 'PRE_INSCRICAO':
-                    amountInput.value = Math.max(0, 150 - valorAtual).toFixed(2);
+            switch(status) {
+                case 'PRÉ-INSCRIÇÃO':
+                    valorField.value = '150,00';
                     break;
-                case 'PAGO_COMPLETO':
-                    amountInput.value = Math.max(0, 520 - valorAtual).toFixed(2);
+                case 'PAGO COMPLETO':
+                    valorField.value = '520,00';
                     break;
                 case 'PENDENTE':
-                    amountInput.value = '0.00';
+                    valorField.value = '0,00';
                     break;
             }
         }
 
-        async function processPayment() {
-            const amount = parseFloat(document.getElementById('paymentAmount').value);
-            const method = document.getElementById('paymentMethod').value;
-            
-            if (!amount || amount <= 0) {
-                showNotification('Valor inválido!', 'error');
-                return;
-            }
-            
-            console.log(`💰 Processando pagamento: R$ ${amount} via ${method}`);
-            
-            // Mostrar popup de confirmação
-            showConfirmationPopup(
-                `Confirmar cobrança de R$ ${amount.toFixed(2)} via ${method}?`,
-                async () => {
-                    showLoading(true);
-                    
-                    try {
-                        const valorAtual = parseFloat(currentParticipant.valor_pago || 0);
-                        const novoValorTotal = valorAtual + amount;
-                        
-                        // Determinar status baseado no valor total
-                        let statusFinal;
-                        if (novoValorTotal >= 520) {
-                            statusFinal = 'PAGO';
-                        } else if (novoValorTotal >= 150) {
-                            statusFinal = 'PAGAMENTO PARCIAL';
-                        } else {
-                            statusFinal = 'AGUARDANDO PAGAMENTO';
-                        }
-                        
-                        console.log(`💾 Atualizando banco: valor ${novoValorTotal}, status ${statusFinal}`);
-                        
-                        // Atualizar no banco
-                        const { error } = await supabase
-                            .from('inscricoes')
-                            .update({
-                                valor_pago: novoValorTotal.toFixed(2),
-                                forma_pagamento: method,
-                                status_pagamento: statusFinal,
-                                atendente_ultimo_pagamento: currentUser.email,
-                                dados_último_pagamento: new Date().toISOString(),
-                                data_confirmacao_pagamento: new Date().toISOString()
-                            })
-                            .eq('id', currentParticipant.id);
-                        
-                        if (error) throw error;
-                        
-                        console.log('✅ Pagamento processado com sucesso');
-                        
-                        // Atualizar dados locais
-                        await loadDashboardData();
-                        
-                        closePaymentModal();
-                        showNotification('Pagamento processado com sucesso!', 'success');
-                        
-                    } catch (error) {
-                        console.error('❌ Erro ao processar pagamento:', error);
-                        showNotification('Erro ao processar pagamento: ' + error.message, 'error');
-                    } finally {
-                        showLoading(false);
-                    }
-                }
-            );
-        }
-
-        function closePaymentModal() {
-            document.getElementById('paymentModal').style.display = 'none';
+        function closeStatusModal() {
+            document.getElementById('status-modal').style.display = 'none';
             currentParticipant = null;
         }
 
-        // Modal de Detalhes
-        async function openDetailsModal(participantId) {
-            console.log('📋 Abrindo detalhes para ID:', participantId);
-            
-            currentParticipant = allParticipants.find(p => p.id === participantId);
+        async function updateParticipantStatus() {
             if (!currentParticipant) return;
-            
-            const isAdmin = currentUser.email === 'adm@alvo.com';
-            
-            document.getElementById('detailsModalContent').innerHTML = `
-                <div style="max-height: 60vh; overflow-y: auto;">
-                    <h3>👤 Informações Pessoais</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Nome:</label>
-                            <input type="text" id="editName" class="form-control" 
-                                   value="${currentParticipant.nome_completo || ''}"
-                                   onchange="updateParticipantName()">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">WhatsApp:</label>
-                            <input type="text" class="form-control" 
-                                   value="${currentParticipant.whatsapp || ''}" readonly>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Sexo:</label>
-                            <input type="text" class="form-control" 
-                                   value="${currentParticipant.sexo || ''}" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Idade:</label>
-                            <input type="text" class="form-control" 
-                                   value="${currentParticipant.idade || ''}" readonly>
-                        </div>
-                    </div>
-                    
-                    <h3>💰 Informações de Pagamento</h3>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                        <div style="background: var(--dark-bg); padding: 1rem; border-radius: 5px; text-align: center;">
-                            <div style="color: ${getStatusColor(getParticipantStatus(currentParticipant))}; font-weight: bold;">
-                                ${getParticipantStatus(currentParticipant)}
-                            </div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Status</div>
-                        </div>
-                        <div style="background: var(--dark-bg); padding: 1rem; border-radius: 5px; text-align: center;">
-                            <div style="color: var(--primary-color); font-weight: bold; font-size: 1.2rem;">
-                                R$ ${currentParticipant.valor_pago || '0,00'}
-                            </div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Valor Pago</div>
-                        </div>
-                        <div style="background: var(--dark-bg); padding: 1rem; border-radius: 5px; text-align: center;">
-                            <div style="color: var(--secondary-color); font-weight: bold;">
-                                ${currentParticipant.forma_pagamento || 'Não informado'}
-                            </div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Forma Pagamento</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(${isAdmin ? '3' : '2'}, 1fr); gap: 1rem; margin-top: 2rem;">
-                    <button class="btn btn-success" onclick="openPaymentModal(${currentParticipant.id}); closeDetailsModal();">
-                        💰 COBRAR
-                    </button>
-                    <button class="btn btn-warning" onclick="openEmailModal(${currentParticipant.id}); closeDetailsModal();">
-                        📧 ENVIAR E-MAIL
-                    </button>
-                    ${isAdmin ? `
-                    <button class="btn btn-danger" onclick="deleteParticipant(${currentParticipant.id})">
-                        🗑️ EXCLUIR
-                    </button>
-                    ` : ''}
-                </div>
-            `;
-            
-            document.getElementById('detailsModal').style.display = 'block';
-        }
 
-        function getStatusColor(status) {
-            switch (status) {
-                case 'AGUARDANDO PAGAMENTO':
-                    return '#ffc107';
-                case 'PAGAMENTO PARCIAL':
-                    return '#17a2b8';
-                case 'PAGO':
-                    return '#28a745';
-                default:
-                    return '#ffc107';
+            const newStatus = document.getElementById('new-status').value;
+            const newFormaPagamento = document.getElementById('new-forma-pagamento').value;
+            const newValorPago = document.getElementById('new-valor-pago').value;
+
+            if (!newStatus || !newFormaPagamento || !newValorPago) {
+                showNotification('Preencha todos os campos obrigatórios', 'error');
+                return;
+            }
+
+            try {
+                const now = new Date().toISOString();
+                const updateData = {
+                    status_pagamento: newStatus === 'PRÉ-INSCRIÇÃO' ? 'PAGO PARCIALMENTE' : 
+                                     newStatus === 'PAGO COMPLETO' ? 'PAGO' : 'PENDENTE',
+                    forma_pagamento: newFormaPagamento,
+                    valor_pago: newValorPago,
+                    data_confirmacao_pagamento: newStatus !== 'PENDENTE' ? now : null,
+                    atendente: currentUser.email.split('@')[0]
+                };
+
+                const { error } = await supabase
+                    .from('inscricoes')
+                    .update(updateData)
+                    .eq('id', currentParticipant.id);
+
+                if (error) throw error;
+
+                // Atualizar dados locais
+                const participantIndex = allParticipants.findIndex(p => p.id === currentParticipant.id);
+                if (participantIndex !== -1) {
+                    allParticipants[participantIndex] = { ...allParticipants[participantIndex], ...updateData };
+                }
+                
+                // Fechar modal
+                closeStatusModal();
+                
+                // Gerar recibo se pagamento foi efetuado
+                if (newStatus !== 'PENDENTE') {
+                    generateReceipt({
+                        ...currentParticipant,
+                        ...updateData
+                    });
+                }
+                
+                // Atualizar interface
+                await updateStats();
+                searchParticipants(); // Refresh da busca
+                
+                showNotification('Status atualizado com sucesso!', 'success');
+
+            } catch (error) {
+                console.error('Erro ao atualizar status:', error);
+                showNotification('Erro ao atualizar status', 'error');
             }
         }
 
-        async function updateParticipantName() {
-            const newName = document.getElementById('editName').value;
+        // ===== SISTEMA DE RECIBO =====
+        function generateReceipt(participant) {
+            const now = new Date();
+            const receiptData = {
+                participant: participant,
+                datetime: formatDateTime(now),
+                numero: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+            };
+
+            currentReceipt = receiptData;
+
+            const receiptContent = `
+                <div class="receipt-header">
+                    <h2 style="margin: 0; color: #ff6b35;">ALVO - UMA IGREJA QUE PENSA</h2>
+                    <h3 style="margin: 5px 0; color: #333;">O RETIRO 2025</h3>
+                    <p style="margin: 0; font-size: 0.9em;">RECIBO DE PAGAMENTO</p>
+                </div>
+                
+                <div style="margin: 15px 0; text-align: left;">
+                    <p><strong>Data/Hora:</strong> ${receiptData.datetime}</p>
+                    <p><strong>Recibo Nº:</strong> ${receiptData.numero}</p>
+                    <p><strong>Nome:</strong> ${participant.nome_completo}</p>
+                    <p><strong>WhatsApp:</strong> ${participant.whatsapp}</p>
+                    <p><strong>Sexo:</strong> ${participant.sexo}</p>
+                    <p><strong>Idade:</strong> ${participant.idade || 'N/A'}</p>
+                </div>
+                
+                <div style="border-top: 1px dashed #333; border-bottom: 1px dashed #333; padding: 10px 0; margin: 15px 0;">
+                    <p><strong>Valor Pago:</strong> R$ ${participant.valor_pago}</p>
+                    <p><strong>Forma:</strong> ${participant.forma_pagamento}</p>
+                    <p><strong>Status:</strong> ${getStatusText(participant.status_pagamento)}</p>
+                    <p><strong>Atendente:</strong> ${participant.atendente}</p>
+                </div>
+                
+                <div class="receipt-footer">
+                    <p style="margin: 0; font-size: 0.8em;">PAGAMENTO QUITADO!</p>
+                    <p style="margin: 5px 0 0 0; font-size: 0.8em;">Participação confirmada!</p>
+                    <p style="margin: 5px 0 0 0; font-size: 0.7em;">Parabéns pelo seu posicionamento!</p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.7em;">ALVO CHURCH</p>
+                </div>
+            `;
+
+            document.getElementById('receipt-content').innerHTML = receiptContent;
+            document.getElementById('receipt-modal').style.display = 'flex';
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').style.display = 'none';
+            currentReceipt = null;
+        }
+
+        function printReceipt() {
+            if (!currentReceipt) return;
             
+            document.getElementById('receipt-print').innerHTML = document.getElementById('receipt-content').innerHTML;
+            window.print();
+        }
+
+        function emailReceiptFromModal() {
+            if (!currentReceipt) return;
+            
+            closeReceiptModal();
+            openEmailModal(currentReceipt.participant.id);
+        }
+
+        // ===== MODAL DE DETALHES =====
+        async function showParticipantDetails(participantId) {
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (!participant) return;
+
+            const showDeleteButton = currentUser && currentUser.email === 'adm@alvo.com';
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">👤 Informações Pessoais</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Nome:</label>
+                            <input type="text" id="edit-name" class="input" value="${participant.nome_completo || ''}" onchange="updateParticipantName('${participantId}', this.value)">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">WhatsApp:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.whatsapp || 'Não informado'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Sexo:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.sexo || 'Não informado'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Idade:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.idade || 'Não informado'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">E-mail:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.email || 'Não informado'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cidade:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cidade || 'Não informado'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">💰 Informações de Pagamento</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div style="background: #222; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.2em; color: ${getStatusClass(participant.status_pagamento) === 'success' ? 'var(--success)' : 'var(--warning)'}; font-weight: bold;">${getStatusText(participant.status_pagamento)}</div>
+                            <div style="color: var(--text-light);">Status</div>
+                        </div>
+                        <div style="background: #222; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.2em; color: var(--primary); font-weight: bold;">${participant.valor_pago || 'N/A'}</div>
+                            <div style="color: var(--text-light);">Valor Pago</div>
+                        </div>
+                        <div style="background: #222; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.2em; color: var(--info); font-weight: bold;">${participant.forma_pagamento || 'N/A'}</div>
+                            <div style="color: var(--text-light);">Forma Pagamento</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">🏥 Informações de Saúde</h4>
+                    <div style="background: #222; padding: 15px; border-radius: 8px; font-size: 0.9em;">
+                        <div style="margin-bottom: 8px;"><strong>Comorbidade:</strong> ${participant.comorbidade || 'N/A'} ${participant.comorbidade_qual ? `(${participant.comorbidade_qual})` : ''}</div>
+                        <div style="margin-bottom: 8px;"><strong>Medicação:</strong> ${participant.medicacao || 'N/A'} ${participant.medicacao_qual ? `(${participant.medicacao_qual})` : ''}</div>
+                        <div style="margin-bottom: 8px;"><strong>Restrições Alimentares:</strong> ${participant.restricoes_alimentares || 'N/A'} ${participant.restricoes_quais ? `(${participant.restricoes_quais})` : ''}</div>
+                        <div style="margin-bottom: 8px;"><strong>Alergias:</strong> ${participant.alergias || 'N/A'} ${participant.alergias_quais ? `(${participant.alergias_quais})` : ''}</div>
+                        <div><strong>Limitação Locomoção:</strong> ${participant.limitacao_locomocao || 'N/A'} ${participant.locomocao_qual ? `(${participant.locomocao_qual})` : ''}</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: ${showDeleteButton ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'}; gap: 10px; margin-top: 20px;">
+                    <button onclick="openStatusModal('${participantId}')" class="btn btn-success">💰 Atualizar Status</button>
+                    <button onclick="generateReceipt(allParticipants.find(p => p.id == '${participantId}'))" class="btn btn-info">🧾 Gerar Recibo</button>
+                    <button onclick="openEmailModal('${participantId}')" class="btn btn-warning">📧 Enviar E-mail</button>
+                    ${showDeleteButton ? `<button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>` : ''}
+                </div>
+            `;
+
+            document.getElementById('details-content').innerHTML = content;
+            document.getElementById('details-modal').style.display = 'flex';
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('details-modal').style.display = 'none';
+        }
+
+        async function updateParticipantName(participantId, newName) {
             try {
                 const { error } = await supabase
                     .from('inscricoes')
                     .update({ nome_completo: newName })
-                    .eq('id', currentParticipant.id);
-                
+                    .eq('id', participantId);
+
                 if (error) throw error;
-                
-                currentParticipant.nome_completo = newName;
-                await loadDashboardData();
+
+                // Atualizar dados locais
+                const participant = allParticipants.find(p => p.id == participantId);
+                if (participant) {
+                    participant.nome_completo = newName;
+                }
+
                 showNotification('Nome atualizado com sucesso!', 'success');
-                
+                searchParticipants(); // Refresh da busca
+
             } catch (error) {
-                console.error('❌ Erro ao atualizar nome:', error);
-                showNotification('Erro ao atualizar nome: ' + error.message, 'error');
+                console.error('Erro ao atualizar nome:', error);
+                showNotification('Erro ao atualizar nome', 'error');
             }
         }
 
         async function deleteParticipant(participantId) {
-            showConfirmationPopup(
-                'Tem certeza que deseja excluir esta inscrição? Esta ação não pode ser desfeita!',
-                async () => {
-                    try {
-                        const { error } = await supabase
-                            .from('inscricoes')
-                            .delete()
-                            .eq('id', participantId);
-                        
-                        if (error) throw error;
-                        
-                        await loadDashboardData();
-                        closeDetailsModal();
-                        showNotification('Inscrição excluída com sucesso!', 'success');
-                        
-                    } catch (error) {
-                        console.error('❌ Erro ao excluir:', error);
-                        showNotification('Erro ao excluir: ' + error.message, 'error');
-                    }
-                }
-            );
-        }
-
-        function closeDetailsModal() {
-            document.getElementById('detailsModal').style.display = 'none';
-            currentParticipant = null;
-        }
-
-        // Modal de E-mail
-        async function openEmailModal(participantId) {
-            console.log('📧 Abrindo modal de e-mail para ID:', participantId);
-            
-            currentParticipant = allParticipants.find(p => p.id === participantId);
-            if (!currentParticipant) return;
-            
-            document.getElementById('emailModalContent').innerHTML = `
-                <div class="form-group">
-                    <label class="form-label">👤 Participante:</label>
-                    <input type="text" class="form-control" 
-                           value="${currentParticipant.nome_completo}" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">📧 E-mail:</label>
-                    <input type="email" id="emailAddress" class="form-control" 
-                           value="${currentParticipant['e-mail'] || ''}">
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
-                    <button class="btn btn-success" onclick="sendEmail()">
-                        📧 ENVIAR
-                    </button>
-                    <button class="btn btn-danger" onclick="closeEmailModal()">
-                        ❌ CANCELAR
-                    </button>
-                </div>
-            `;
-            
-            document.getElementById('emailModal').style.display = 'block';
-        }
-
-        async function sendEmail() {
-            const emailAddress = document.getElementById('emailAddress').value;
-            
-            if (!emailAddress) {
-                showNotification('E-mail é obrigatório!', 'error');
+            if (!confirm('Tem certeza que deseja excluir esta inscrição? Esta ação não pode ser desfeita.')) {
                 return;
             }
-            
-            console.log('📧 Enviando e-mail para:', emailAddress);
-            showLoading(true);
-            
+
             try {
-                // Simular envio de e-mail (implementar integração real com Resend)
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                const { error } = await supabase
+                    .from('inscricoes')
+                    .delete()
+                    .eq('id', participantId);
+
+                if (error) throw error;
+
+                // Atualizar dados locais
+                allParticipants = allParticipants.filter(p => p.id != participantId);
+
+                closeDetailsModal();
+                await updateStats();
+                searchParticipants(); // Refresh da busca
                 
-                closeEmailModal();
-                showNotification('E-mail enviado com sucesso!', 'success');
-                
+                showNotification('Inscrição excluída com sucesso!', 'success');
+
             } catch (error) {
-                console.error('❌ Erro ao enviar e-mail:', error);
-                showNotification('Erro ao enviar e-mail: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
+                console.error('Erro ao excluir participante:', error);
+                showNotification('Erro ao excluir inscrição', 'error');
             }
+        }
+
+        // ===== SISTEMA DE E-MAIL =====
+        function openEmailModal(participantId) {
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (!participant) return;
+
+            document.getElementById('email-participant-name').textContent = participant.nome_completo;
+            document.getElementById('email-input').value = participant.email || '';
+            
+            const summary = `
+                Nome: ${participant.nome_completo}
+                WhatsApp: ${participant.whatsapp}
+                Status: ${getStatusText(participant.status_pagamento)}
+                Valor Pago: ${participant.valor_pago || 'N/A'}
+                Forma Pagamento: ${participant.forma_pagamento || 'N/A'}
+                Data Inscrição: ${new Date(participant.data_inscricao).toLocaleDateString('pt-BR')}
+            `;
+            
+            document.getElementById('email-payment-summary').textContent = summary;
+            document.getElementById('email-modal').style.display = 'flex';
+            
+            // Armazenar participante atual para envio
+            currentParticipant = participant;
         }
 
         function closeEmailModal() {
-            document.getElementById('emailModal').style.display = 'none';
+            document.getElementById('email-modal').style.display = 'none';
             currentParticipant = null;
         }
 
-        // Dashboard e Lista de Ganhadores (implementar conforme necessário)
-        function openDashboard() {
-            showNotification('Dashboard em desenvolvimento!', 'warning');
-        }
-
-        function openWinnersList() {
-            showNotification('Lista de ganhadores em desenvolvimento!', 'warning');
-        }
-
-        // Utilitários
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
-
-        function showNotification(message, type = 'success') {
-            console.log(`📢 Notificação (${type}):`, message);
+        async function sendEmailReceipt() {
+            const email = document.getElementById('email-input').value;
             
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification ${type} show`;
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 4000);
-        }
+            if (!email) {
+                showNotification('Digite um e-mail válido', 'error');
+                return;
+            }
 
-        function showConfirmationPopup(message, onConfirm) {
-            const popup = document.createElement('div');
-            popup.className = 'confirmation-popup';
-            popup.innerHTML = `
-                <h3>⚠️ Confirmação</h3>
-                <p>${message}</p>
-                <button class="btn btn-success" onclick="confirmAction()">✅ Confirmar</button>
-                <button class="btn btn-danger" onclick="cancelAction()">❌ Cancelar</button>
-            `;
-            
-            document.body.appendChild(popup);
-            
-            window.confirmAction = () => {
-                document.body.removeChild(popup);
-                onConfirm();
-                delete window.confirmAction;
-                delete window.cancelAction;
-            };
-            
-            window.cancelAction = () => {
-                document.body.removeChild(popup);
-                delete window.confirmAction;
-                delete window.cancelAction;
-            };
-        }
+            if (!currentParticipant) {
+                showNotification('Erro: participante não encontrado', 'error');
+                return;
+            }
 
-        function closeAllModals() {
-            document.getElementById('paymentModal').style.display = 'none';
-            document.getElementById('detailsModal').style.display = 'none';
-            document.getElementById('emailModal').style.display = 'none';
-            currentParticipant = null;
-        }
-
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
+            try {
+                // Preparar dados do e-mail
+                const emailData = {
+                    from: 'O Retiro 2025 <noreply@alvochurch.com>',
+                    to: [email],
+                    subject: `Comprovante de Inscrição - O Retiro 2025 - ${currentParticipant.nome_completo}`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <div style="background: linear-gradient(135deg, #ff6b35, #ff8a5b); padding: 30px; text-align: center; color: white;">
+                                <h1 style="margin: 0; font-size: 2em;">🏕️ O RETIRO 2025</h1>
+                                <p style="margin: 10px 0 0 0; font-size: 1.1em;">ALVO - UMA IGREJA QUE PENSA</p>
+                            </div>
+                            
+                            <div style="padding: 30px; background: #f9f9f9;">
+                                <h2 style="color: #ff6b35; margin-bottom: 20px;">📋 Comprovante de Inscrição</h2>
+                                
+                                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                                    <h3 style="color: #333; margin-bottom: 15px;">👤 Dados Pessoais</h3>
+                                    <p><strong>Nome:</strong> ${currentParticipant.nome_completo}</p>
+                                    <p><strong>WhatsApp:</strong> ${currentParticipant.whatsapp}</p>
+                                    <p><strong>E-mail:</strong> ${currentParticipant.email}</p>
+                                    <p><strong>Sexo:</strong> ${currentParticipant.sexo}</p>
+                                    <p><strong>Idade:</strong> ${currentParticipant.idade}</p>
+                                </div>
+                                
+                                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                                    <h3 style="color: #333; margin-bottom: 15px;">💰 Informações de Pagamento</h3>
+                                    <p><strong>Status:</strong> ${getStatusText(currentParticipant.status_pagamento)}</p>
+                                    <p><strong>Valor Pago:</strong> ${currentParticipant.valor_pago || 'N/A'}</p>
+                                    <p><strong>Forma de Pagamento:</strong> ${currentParticipant.forma_pagamento || 'N/A'}</p>
+                                    <p><strong>Data da Inscrição:</strong> ${new Date(currentParticipant.data_inscricao).toLocaleDateString('pt-BR')}</p>
+                                </div>
+                                
+                                <div style="background: #ff6b35; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                                    <h3 style="margin: 0 0 10px 0;">🎯 Próximos Passos</h3>
+                                    <p style="margin: 0;">Aguarde mais informações sobre o evento. Em caso de dúvidas, entre em contato conosco!</p>
+                                </div>
+                            </div>
+                            
+                            <div style="background: #333; color: white; padding: 20px; text-align: center; font-size: 0.9em;">
+                                <p style="margin: 0;">Este é um e-mail automático do Sistema de Balcão - O Retiro 2025</p>
+                                <p style="margin: 5px 0 0 0;">ALVO - UMA IGREJA QUE PENSA</p>
+                            </div>
+                        </div>
+                    `
                 };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
+
+                // Enviar e-mail via Resend
+                const response = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${RESEND_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(emailData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Erro ao enviar e-mail');
+                }
+
+                showNotification('E-mail enviado com sucesso!', 'success');
+                closeEmailModal();
+
+            } catch (error) {
+                console.error('Erro ao enviar e-mail:', error);
+                showNotification(`Erro ao enviar e-mail: ${error.message}`, 'error');
+            }
         }
 
-        // Converter maiúsculas no campo de busca
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.addEventListener('input', function() {
-                    this.value = this.value.toUpperCase();
+        // ===== SISTEMA DE ESTATÍSTICAS =====
+        async function updateStats() {
+            try {
+                // Contar apenas participantes que fizeram algum pagamento (parcial ou completo)
+                const pagantes = allParticipants.filter(p => 
+                    p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO'
+                );
+                
+                const homens = pagantes.filter(p => p.sexo === 'MASCULINO').length;
+                const mulheres = pagantes.filter(p => p.sexo === 'FEMININO').length;
+                const total = pagantes.length;
+
+                document.getElementById('total-homens').textContent = homens;
+                document.getElementById('total-mulheres').textContent = mulheres;
+                document.getElementById('total-inscricoes').textContent = total;
+
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas:', error);
+            }
+        }
+
+        // ===== DASHBOARD =====
+        function showDashboard() {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('dashboard-container').style.display = 'block';
+            updateDashboard();
+        }
+
+        function hideDashboard() {
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('dashboard-container').style.display = 'none';
+        }
+
+        function updateDashboard() {
+            const filterData = document.getElementById('filter-data').value;
+            const filterAtendente = document.getElementById('filter-atendente').value;
+            const filterForma = document.getElementById('filter-forma').value;
+            const filterStatus = document.getElementById('filter-status').value;
+
+            let filteredParticipants = allParticipants;
+
+            if (filterData) {
+                filteredParticipants = filteredParticipants.filter(p => {
+                    const inscricaoDate = convertToLocalTime(p.data_inscricao);
+                    const filterDate = new Date(filterData);
+                    return inscricaoDate.toDateString() === filterDate.toDateString();
                 });
             }
+
+            if (filterAtendente) {
+                filteredParticipants = filteredParticipants.filter(p => p.atendente === filterAtendente);
+            }
+
+            if (filterForma) {
+                filteredParticipants = filteredParticipants.filter(p => p.forma_pagamento === filterForma);
+            }
+
+            if (filterStatus) {
+                filteredParticipants = filteredParticipants.filter(p => p.status_pagamento === filterStatus);
+            }
+
+            // Calcular métricas
+            const totalInscricoes = filteredParticipants.length;
+            const preInscricoes = filteredParticipants.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length;
+            const pagosCompleto = filteredParticipants.filter(p => p.status_pagamento === 'PAGO').length;
+            
+            const valorPix = filteredParticipants.filter(p => p.forma_pagamento === 'PIX').length;
+            const valorDinheiro = filteredParticipants.filter(p => p.forma_pagamento === 'DINHEIRO').length;
+            const valorCartao = filteredParticipants.filter(p => 
+                p.forma_pagamento === 'CARTÃO DE CRÉDITO' || p.forma_pagamento === 'CARTÃO DE DÉBITO'
+            ).length;
+
+            // Atualizar interface
+            document.getElementById('dash-total-inscricoes').textContent = totalInscricoes;
+            document.getElementById('dash-pre-inscricoes').textContent = preInscricoes;
+            document.getElementById('dash-pagos-completo').textContent = pagosCompleto;
+            document.getElementById('dash-valor-pix').textContent = valorPix;
+            document.getElementById('dash-valor-dinheiro').textContent = valorDinheiro;
+            document.getElementById('dash-valor-cartao').textContent = valorCartao;
+
+            // Atualizar tabela
+            updateInscricoesTable(filteredParticipants);
+        }
+
+        function updateInscricoesTable(participants) {
+            const tbody = document.getElementById('inscricoes-tbody');
+            
+            tbody.innerHTML = participants.map(p => `
+                <tr onclick="showParticipantDetails('${p.id}')" style="cursor: pointer;">
+                    <td>${p.nome_completo}</td>
+                    <td>${p.whatsapp}</td>
+                    <td>${p.sexo}</td>
+                    <td><span class="btn btn-${getStatusClass(p.status_pagamento)}" style="padding: 2px 8px; font-size: 0.7em;">${getStatusText(p.status_pagamento)}</span></td>
+                    <td>${p.forma_pagamento || 'N/A'}</td>
+                    <td>${p.atendente || 'N/A'}</td>
+                    <td>${formatDateTime(convertToLocalTime(p.data_inscricao))}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ===== LISTA DE GANHADORES =====
+        async function generateWinnersList() {
+            try {
+                // Buscar os 150 primeiros que fizeram pagamento (parcial ou completo) por ordem de data de confirmação
+                const winners = allParticipants
+                    .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                    .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
+                    .slice(0, 150);
+
+                const content = `
+                    <div style="margin-bottom: 20px;">
+                        <p style="color: var(--text-light);">Lista dos primeiros 150 participantes que efetuaram pagamento (parcial ou completo), por ordem de confirmação de pagamento.</p>
+                        <p style="color: var(--warning); font-weight: bold;">Total de ganhadores: ${winners.length}/150</p>
+                    </div>
+                    
+                    <div style="max-height: 60vh; overflow-y: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nome</th>
+                                    <th>Sexo</th>
+                                    <th>WhatsApp</th>
+                                    <th>Status</th>
+                                    <th>Data Pagamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${winners.map((participant, index) => `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td>${participant.nome_completo}</td>
+                                        <td>${participant.sexo}</td>
+                                        <td>${participant.whatsapp}</td>
+                                        <td><span class="btn btn-${getStatusClass(participant.status_pagamento)}" style="padding: 2px 6px; font-size: 0.7em;">${getStatusText(participant.status_pagamento)}</span></td>
+                                        <td>${formatDateTime(convertToLocalTime(participant.data_confirmacao_pagamento))}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                document.getElementById('winners-content').innerHTML = content;
+                document.getElementById('winners-modal').style.display = 'flex';
+
+            } catch (error) {
+                console.error('Erro ao gerar lista de ganhadores:', error);
+                showNotification('Erro ao gerar lista de ganhadores', 'error');
+            }
+        }
+
+        function closeWinnersModal() {
+            document.getElementById('winners-modal').style.display = 'none';
+        }
+
+        function exportWinners() {
+            try {
+                const winners = allParticipants
+                    .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                    .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
+                    .slice(0, 150);
+
+                const winnersData = winners.map((p, index) => ({
+                    'Posição': index + 1,
+                    'Nome': p.nome_completo,
+                    'WhatsApp': p.whatsapp,
+                    'Sexo': p.sexo,
+                    'Status': getStatusText(p.status_pagamento),
+                    'Data Pagamento': formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento))
+                }));
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(winnersData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Ganhadores de Camisa');
+                XLSX.writeFile(wb, `ganhadores_camisa_retiro_2025_${new Date().toISOString().split('T')[0]}.xlsx`);
+                
+                showNotification('Lista de ganhadores exportada com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao exportar ganhadores:', error);
+                showNotification('Erro ao exportar lista de ganhadores', 'error');
+            }
+        }
+
+        function printWinners() {
+            const winners = allParticipants
+                .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
+                .slice(0, 150);
+
+            const printContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #ff6b35;">🏕️ O RETIRO 2025</h1>
+                        <h2>🏆 LISTA DOS 150 GANHADORES DE CAMISA</h2>
+                        <p>ALVO - UMA IGREJA QUE PENSA</p>
+                        <p>Total: ${winners.length}/150 ganhadores</p>
+                    </div>
+                    
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #ff6b35; color: white;">
+                                <th style="border: 1px solid #ddd; padding: 8px;">#</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">Nome</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">WhatsApp</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">Sexo</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">Data Pagamento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${winners.map((p, index) => `
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${p.nome_completo}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${p.whatsapp}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${p.sexo}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento))}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
+                        Gerado em ${formatDateTime(new Date())} - Sistema de Balcão O Retiro 2025
+                    </div>
+                </div>
+            `;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // ===== EXPORTAÇÃO EXCEL =====
+        async function exportToExcel() {
+            try {
+                const wb = XLSX.utils.book_new();
+
+                // Aba 1: Inscrições Completas
+                const inscricoesData = allParticipants.map(p => ({
+                    'ID': p.id,
+                    'Nome Completo': p.nome_completo,
+                    'Sexo': p.sexo,
+                    'Idade': p.idade,
+                    'WhatsApp': p.whatsapp,
+                    'Email': p.email,
+                    'Endereço': p.endereco,
+                    'Número': p.numero,
+                    'Bairro': p.bairro,
+                    'Cidade': p.cidade,
+                    'Cor Rede': p.cor_rede,
+                    'Vai Servir/Receber': p.vai_servir_receber,
+                    'Status Pagamento': p.status_pagamento,
+                    'Valor Pago': p.valor_pago,
+                    'Forma Pagamento': p.forma_pagamento,
+                    'Atendente': p.atendente,
+                    'Data Inscrição': formatDateTime(convertToLocalTime(p.data_inscricao)),
+                    'Data Confirmação': p.data_confirmacao_pagamento ? formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento)) : 'N/A'
+                }));
+                
+                const wsInscricoes = XLSX.utils.json_to_sheet(inscricoesData);
+                XLSX.utils.book_append_sheet(wb, wsInscricoes, 'Inscrições');
+
+                // Aba 2: Resumo Executivo
+                const resumoData = [
+                    { 'Métrica': 'Total de Inscrições', 'Valor': allParticipants.length },
+                    { 'Métrica': 'Homens', 'Valor': allParticipants.filter(p => p.sexo === 'MASCULINO').length },
+                    { 'Métrica': 'Mulheres', 'Valor': allParticipants.filter(p => p.sexo === 'FEMININO').length },
+                    { 'Métrica': 'Pago Parcialmente', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length },
+                    { 'Métrica': 'Pago Completo', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PAGO').length },
+                    { 'Métrica': 'Pendentes', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PENDENTE').length },
+                    { 'Métrica': 'Pagamentos PIX', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'PIX').length },
+                    { 'Métrica': 'Pagamentos Dinheiro', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'DINHEIRO').length },
+                    { 'Métrica': 'Pagamentos Cartão Crédito', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'CARTÃO DE CRÉDITO').length },
+                    { 'Métrica': 'Pagamentos Cartão Débito', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'CARTÃO DE DÉBITO').length }
+                ];
+                
+                const wsResumo = XLSX.utils.json_to_sheet(resumoData);
+                XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+                // Aba 3: Ganhadores de Camisa
+                const winners = allParticipants
+                    .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                    .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
+                    .slice(0, 150);
+
+                const winnersData = winners.map((p, index) => ({
+                    'Posição': index + 1,
+                    'Nome': p.nome_completo,
+                    'WhatsApp': p.whatsapp,
+                    'Sexo': p.sexo,
+                    'Status': p.status_pagamento,
+                    'Data Pagamento': formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento))
+                }));
+                
+                const wsWinners = XLSX.utils.json_to_sheet(winnersData);
+                XLSX.utils.book_append_sheet(wb, wsWinners, 'Ganhadores Camisa');
+
+                // Salvar arquivo
+                XLSX.writeFile(wb, `retiro_2025_completo_${new Date().toISOString().split('T')[0]}.xlsx`);
+                showNotification('Arquivo Excel exportado com sucesso!', 'success');
+
+            } catch (error) {
+                console.error('Erro ao exportar Excel:', error);
+                showNotification('Erro ao exportar arquivo Excel', 'error');
+            }
+        }
+
+        function exportDashboard() {
+            exportToExcel();
+        }
+
+        function exportInscricoes() {
+            exportToExcel();
+        }
+
+        // ===== SISTEMA DE NOTIFICAÇÕES =====
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // ===== EVENTOS DE MODAL =====
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+
+        // ===== INICIALIZAÇÃO =====
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Sistema de Balcão v3.0 - O Retiro 2025 - Carregado e Configurado');
+            
+            // Verificar se já está logado
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session) {
+                    currentUser = session.user;
+                    document.getElementById('user-name').textContent = currentUser.email.split('@')[0];
+                    document.getElementById('login-container').style.display = 'none';
+                    document.getElementById('main-system').style.display = 'block';
+                    loadInitialData();
+                }
+            });
         });
     </script>
 </body>
