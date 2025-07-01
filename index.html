@@ -243,6 +243,35 @@
             margin-bottom: 20px;
         }
         
+        /* Recibo */
+        .receipt-modal .modal-content {
+            background: white;
+            color: black;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .receipt-content {
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .receipt-header {
+            border-bottom: 2px dashed #333;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .receipt-footer {
+            border-top: 2px dashed #333;
+            padding-top: 15px;
+            margin-top: 15px;
+            font-size: 0.8em;
+        }
+        
         /* Responsividade */
         @media (max-width: 1200px) {
             .main-layout { grid-template-columns: 1fr; }
@@ -340,6 +369,11 @@
         .table tr:hover {
             background: rgba(255, 107, 53, 0.1);
         }
+        
+        /* Status badges */
+        .status-pendente { background: var(--danger); }
+        .status-pago-parcialmente { background: var(--warning); }
+        .status-pago { background: var(--success); }
     </style>
 </head>
 <body>
@@ -476,21 +510,27 @@
                             <input type="date" id="filter-data" class="input" onchange="updateDashboard()">
                         </div>
                         <div>
+                            <label style="color: white; margin-bottom: 5px; display: block;">👤 Atendente:</label>
+                            <select id="filter-atendente" class="input" onchange="updateDashboard()">
+                                <option value="">Todos os atendentes</option>
+                            </select>
+                        </div>
+                        <div>
                             <label style="color: white; margin-bottom: 5px; display: block;">💳 Forma de Pagamento:</label>
                             <select id="filter-forma" class="input" onchange="updateDashboard()">
                                 <option value="">Todas as formas</option>
                                 <option value="PIX">PIX</option>
                                 <option value="DINHEIRO">Dinheiro</option>
-                                <option value="CARTÃO">Cartão</option>
-                                <option value="TRANSFERÊNCIA">Transferência</option>
+                                <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                                <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
                             </select>
                         </div>
                         <div>
                             <label style="color: white; margin-bottom: 5px; display: block;">📊 Status:</label>
                             <select id="filter-status" class="input" onchange="updateDashboard()">
                                 <option value="">Todos os status</option>
-                                <option value="ENTRADA-PRÉ">Pré-inscrição</option>
-                                <option value="PAGO">Pago Completo</option>
+                                <option value="PAGO PARCIALMENTE">Pago Parcialmente</option>
+                                <option value="PAGO">Pago</option>
                                 <option value="PENDENTE">Pendente</option>
                             </select>
                         </div>
@@ -512,15 +552,15 @@
                         <div class="metric-label">✅ Pagos Completo</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value" id="dash-valor-pix">R$ 0,00</div>
+                        <div class="metric-value" id="dash-valor-pix">0</div>
                         <div class="metric-label">🏦 PIX</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value" id="dash-valor-dinheiro">R$ 0,00</div>
+                        <div class="metric-value" id="dash-valor-dinheiro">0</div>
                         <div class="metric-label">💵 Dinheiro</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value" id="dash-valor-cartao">R$ 0,00</div>
+                        <div class="metric-value" id="dash-valor-cartao">0</div>
                         <div class="metric-label">💳 Cartão</div>
                     </div>
                 </div>
@@ -537,6 +577,7 @@
                                     <th>Sexo</th>
                                     <th>Status Pagamento</th>
                                     <th>Forma Pagamento</th>
+                                    <th>Atendente</th>
                                     <th>Data Inscrição</th>
                                 </tr>
                             </thead>
@@ -627,10 +668,10 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                 <div>
                     <label style="color: white; margin-bottom: 5px; display: block;">📊 Novo Status:</label>
-                    <select id="new-status" class="input">
+                    <select id="new-status" class="input" onchange="updateValueBasedOnStatus()">
                         <option value="">Selecione...</option>
-                        <option value="ENTRADA-PRÉ">Pré-inscrição (R$ 150)</option>
-                        <option value="PAGO">Pago Completo (R$ 520)</option>
+                        <option value="PRÉ-INSCRIÇÃO">Pré-inscrição (R$ 150)</option>
+                        <option value="PAGO COMPLETO">Pago Completo (R$ 520)</option>
                         <option value="PENDENTE">Pendente</option>
                     </select>
                 </div>
@@ -640,20 +681,35 @@
                         <option value="">Selecione...</option>
                         <option value="PIX">PIX</option>
                         <option value="DINHEIRO">Dinheiro</option>
-                        <option value="CARTÃO">Cartão</option>
-                        <option value="TRANSFERÊNCIA">Transferência</option>
+                        <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                        <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
                     </select>
                 </div>
             </div>
             
             <div style="margin-bottom: 20px;">
                 <label style="color: white; margin-bottom: 5px; display: block;">💰 Valor Pago:</label>
-                <input type="text" id="new-valor-pago" class="input" placeholder="Ex: R$ 150,00">
+                <input type="text" id="new-valor-pago" class="input" placeholder="Ex: 150,00">
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <button onclick="updateParticipantStatus()" class="btn btn-success">✅ Atualizar</button>
                 <button onclick="closeStatusModal()" class="btn btn-secondary">❌ Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Recibo -->
+    <div id="receipt-modal" class="modal receipt-modal">
+        <div class="modal-content">
+            <div id="receipt-content" class="receipt-content">
+                <!-- Conteúdo do recibo será inserido aqui -->
+            </div>
+            
+            <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <button onclick="printReceipt()" class="btn btn-info">🖨️ Imprimir</button>
+                <button onclick="emailReceiptFromModal()" class="btn btn-warning">📧 Enviar E-mail</button>
+                <button onclick="closeReceiptModal()" class="btn btn-secondary">❌ Fechar</button>
             </div>
         </div>
     </div>
@@ -680,6 +736,25 @@
         let currentUser = null;
         let allParticipants = [];
         let currentParticipant = null;
+        let currentReceipt = null;
+
+        // ===== FUNÇÕES UTILITÁRIAS =====
+        function convertToLocalTime(utcDate) {
+            const date = new Date(utcDate);
+            // Converter UTC para horário de Brasília (UTC-3)
+            date.setHours(date.getHours() - 3);
+            return date;
+        }
+
+        function formatDateTime(date) {
+            return new Intl.DateTimeFormat('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
 
         // ===== SISTEMA DE AUTENTICAÇÃO =====
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -739,7 +814,8 @@
             try {
                 await Promise.all([
                     loadParticipants(),
-                    updateStats()
+                    updateStats(),
+                    loadAtendentes()
                 ]);
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
@@ -760,6 +836,23 @@
             } catch (error) {
                 console.error('Erro ao carregar participantes:', error);
                 throw error;
+            }
+        }
+
+        async function loadAtendentes() {
+            try {
+                // Carregar lista única de atendentes
+                const atendentes = [...new Set(allParticipants.map(p => p.atendente).filter(a => a))];
+                const select = document.getElementById('filter-atendente');
+                
+                atendentes.forEach(atendente => {
+                    const option = document.createElement('option');
+                    option.value = atendente;
+                    option.textContent = atendente;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar atendentes:', error);
             }
         }
 
@@ -830,7 +923,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: var(--text-light);">
                             <div><strong>📱 WhatsApp:</strong> ${participant.whatsapp || 'Não informado'}</div>
                             <div><strong>👥 Sexo:</strong> ${participant.sexo || 'Não informado'}</div>
-                            <div><strong>💰 Valor:</strong> ${participant.valor_pago || 'Não informado'}</div>
+                            <div><strong>💰 Valor Pago:</strong> ${participant.valor_pago || 'Não informado'}</div>
                             <div><strong>💳 Forma:</strong> ${participant.forma_pagamento || 'Não informado'}</div>
                         </div>
                         
@@ -853,7 +946,7 @@
         function getStatusClass(status) {
             switch(status) {
                 case 'PAGO': return 'success';
-                case 'ENTRADA-PRÉ': return 'warning';
+                case 'PAGO PARCIALMENTE': return 'warning';
                 case 'PENDENTE': return 'danger';
                 default: return 'secondary';
             }
@@ -861,10 +954,10 @@
 
         function getStatusText(status) {
             switch(status) {
-                case 'PAGO': return '✅ PAGO COMPLETO';
-                case 'ENTRADA-PRÉ': return '🎽 PRÉ-INSCRIÇÃO';
-                case 'PENDENTE': return '⏳ PENDENTE';
-                default: return '❓ INDEFINIDO';
+                case 'PAGO': return 'PAGO';
+                case 'PAGO PARCIALMENTE': return 'PAGO PARCIALMENTE';
+                case 'PENDENTE': return 'PENDENTE';
+                default: return 'INDEFINIDO';
             }
         }
 
@@ -880,15 +973,33 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
                     <div><strong>WhatsApp:</strong> ${participant.whatsapp}</div>
                     <div><strong>Status Atual:</strong> ${getStatusText(participant.status_pagamento)}</div>
-                    <div><strong>Valor Atual:</strong> ${participant.valor_pago || 'N/A'}</div>
+                    <div><strong>Valor Pago:</strong> ${participant.valor_pago || 'N/A'}</div>
                 </div>
             `;
 
-            document.getElementById('new-status').value = participant.status_pagamento || '';
+            // Pré-preencher campos baseado no status atual
+            document.getElementById('new-status').value = '';
             document.getElementById('new-forma-pagamento').value = participant.forma_pagamento || '';
             document.getElementById('new-valor-pago').value = participant.valor_pago || '';
             
             document.getElementById('status-modal').style.display = 'flex';
+        }
+
+        function updateValueBasedOnStatus() {
+            const status = document.getElementById('new-status').value;
+            const valorField = document.getElementById('new-valor-pago');
+            
+            switch(status) {
+                case 'PRÉ-INSCRIÇÃO':
+                    valorField.value = '150,00';
+                    break;
+                case 'PAGO COMPLETO':
+                    valorField.value = '520,00';
+                    break;
+                case 'PENDENTE':
+                    valorField.value = '0,00';
+                    break;
+            }
         }
 
         function closeStatusModal() {
@@ -903,21 +1014,21 @@
             const newFormaPagamento = document.getElementById('new-forma-pagamento').value;
             const newValorPago = document.getElementById('new-valor-pago').value;
 
-            if (!newStatus) {
-                showNotification('Selecione o novo status', 'error');
+            if (!newStatus || !newFormaPagamento || !newValorPago) {
+                showNotification('Preencha todos os campos obrigatórios', 'error');
                 return;
             }
 
             try {
+                const now = new Date().toISOString();
                 const updateData = {
-                    status_pagamento: newStatus,
+                    status_pagamento: newStatus === 'PRÉ-INSCRIÇÃO' ? 'PAGO PARCIALMENTE' : 
+                                     newStatus === 'PAGO COMPLETO' ? 'PAGO' : 'PENDENTE',
                     forma_pagamento: newFormaPagamento,
-                    valor_pago: newValorPago
+                    valor_pago: newValorPago,
+                    data_confirmacao_pagamento: newStatus !== 'PENDENTE' ? now : null,
+                    atendente: currentUser.email.split('@')[0]
                 };
-
-                if (newStatus === 'PAGO') {
-                    updateData.data_confirmacao_pagamento = new Date().toISOString();
-                }
 
                 const { error } = await supabase
                     .from('inscricoes')
@@ -935,6 +1046,14 @@
                 // Fechar modal
                 closeStatusModal();
                 
+                // Gerar recibo se pagamento foi efetuado
+                if (newStatus !== 'PENDENTE') {
+                    generateReceipt({
+                        ...currentParticipant,
+                        ...updateData
+                    });
+                }
+                
                 // Atualizar interface
                 await updateStats();
                 searchParticipants(); // Refresh da busca
@@ -947,10 +1066,77 @@
             }
         }
 
+        // ===== SISTEMA DE RECIBO =====
+        function generateReceipt(participant) {
+            const now = new Date();
+            const receiptData = {
+                participant: participant,
+                datetime: formatDateTime(now),
+                numero: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+            };
+
+            currentReceipt = receiptData;
+
+            const receiptContent = `
+                <div class="receipt-header">
+                    <h2 style="margin: 0; color: #ff6b35;">ALVO - UMA IGREJA QUE PENSA</h2>
+                    <h3 style="margin: 5px 0; color: #333;">O RETIRO 2025</h3>
+                    <p style="margin: 0; font-size: 0.9em;">RECIBO DE PAGAMENTO</p>
+                </div>
+                
+                <div style="margin: 15px 0; text-align: left;">
+                    <p><strong>Data/Hora:</strong> ${receiptData.datetime}</p>
+                    <p><strong>Recibo Nº:</strong> ${receiptData.numero}</p>
+                    <p><strong>Nome:</strong> ${participant.nome_completo}</p>
+                    <p><strong>WhatsApp:</strong> ${participant.whatsapp}</p>
+                    <p><strong>Sexo:</strong> ${participant.sexo}</p>
+                    <p><strong>Idade:</strong> ${participant.idade || 'N/A'}</p>
+                </div>
+                
+                <div style="border-top: 1px dashed #333; border-bottom: 1px dashed #333; padding: 10px 0; margin: 15px 0;">
+                    <p><strong>Valor Pago:</strong> R$ ${participant.valor_pago}</p>
+                    <p><strong>Forma:</strong> ${participant.forma_pagamento}</p>
+                    <p><strong>Status:</strong> ${getStatusText(participant.status_pagamento)}</p>
+                    <p><strong>Atendente:</strong> ${participant.atendente}</p>
+                </div>
+                
+                <div class="receipt-footer">
+                    <p style="margin: 0; font-size: 0.8em;">PAGAMENTO QUITADO!</p>
+                    <p style="margin: 5px 0 0 0; font-size: 0.8em;">Participação confirmada!</p>
+                    <p style="margin: 5px 0 0 0; font-size: 0.7em;">Parabéns pelo seu posicionamento!</p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.7em;">ALVO CHURCH</p>
+                </div>
+            `;
+
+            document.getElementById('receipt-content').innerHTML = receiptContent;
+            document.getElementById('receipt-modal').style.display = 'flex';
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').style.display = 'none';
+            currentReceipt = null;
+        }
+
+        function printReceipt() {
+            if (!currentReceipt) return;
+            
+            document.getElementById('receipt-print').innerHTML = document.getElementById('receipt-content').innerHTML;
+            window.print();
+        }
+
+        function emailReceiptFromModal() {
+            if (!currentReceipt) return;
+            
+            closeReceiptModal();
+            openEmailModal(currentReceipt.participant.id);
+        }
+
         // ===== MODAL DE DETALHES =====
         async function showParticipantDetails(participantId) {
             const participant = allParticipants.find(p => p.id == participantId);
             if (!participant) return;
+
+            const showDeleteButton = currentUser && currentUser.email === 'adm@alvo.com';
 
             const content = `
                 <div style="margin-bottom: 20px;">
@@ -1004,18 +1190,19 @@
                 <div style="margin-bottom: 20px;">
                     <h4 style="color: var(--primary); margin-bottom: 15px;">🏥 Informações de Saúde</h4>
                     <div style="background: #222; padding: 15px; border-radius: 8px; font-size: 0.9em;">
-                        <div style="margin-bottom: 8px;"><strong>Comorbidade:</strong> ${participant.comorbidade} ${participant.comorbidade_qual ? `(${participant.comorbidade_qual})` : ''}</div>
-                        <div style="margin-bottom: 8px;"><strong>Medicação:</strong> ${participant.medicacao} ${participant.medicacao_qual ? `(${participant.medicacao_qual})` : ''}</div>
-                        <div style="margin-bottom: 8px;"><strong>Restrições Alimentares:</strong> ${participant.restricoes_alimentares} ${participant.restricoes_quais ? `(${participant.restricoes_quais})` : ''}</div>
-                        <div style="margin-bottom: 8px;"><strong>Alergias:</strong> ${participant.alergias} ${participant.alergias_quais ? `(${participant.alergias_quais})` : ''}</div>
-                        <div><strong>Limitação Locomoção:</strong> ${participant.limitacao_locomocao} ${participant.locomocao_qual ? `(${participant.locomocao_qual})` : ''}</div>
+                        <div style="margin-bottom: 8px;"><strong>Comorbidade:</strong> ${participant.comorbidade || 'N/A'} ${participant.comorbidade_qual ? `(${participant.comorbidade_qual})` : ''}</div>
+                        <div style="margin-bottom: 8px;"><strong>Medicação:</strong> ${participant.medicacao || 'N/A'} ${participant.medicacao_qual ? `(${participant.medicacao_qual})` : ''}</div>
+                        <div style="margin-bottom: 8px;"><strong>Restrições Alimentares:</strong> ${participant.restricoes_alimentares || 'N/A'} ${participant.restricoes_quais ? `(${participant.restricoes_quais})` : ''}</div>
+                        <div style="margin-bottom: 8px;"><strong>Alergias:</strong> ${participant.alergias || 'N/A'} ${participant.alergias_quais ? `(${participant.alergias_quais})` : ''}</div>
+                        <div><strong>Limitação Locomoção:</strong> ${participant.limitacao_locomocao || 'N/A'} ${participant.locomocao_qual ? `(${participant.locomocao_qual})` : ''}</div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px;">
+                <div style="display: grid; grid-template-columns: ${showDeleteButton ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'}; gap: 10px; margin-top: 20px;">
                     <button onclick="openStatusModal('${participantId}')" class="btn btn-success">💰 Atualizar Status</button>
+                    <button onclick="generateReceipt(allParticipants.find(p => p.id == '${participantId}'))" class="btn btn-info">🧾 Gerar Recibo</button>
                     <button onclick="openEmailModal('${participantId}')" class="btn btn-warning">📧 Enviar E-mail</button>
-                    <button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>
+                    ${showDeleteButton ? `<button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>` : ''}
                 </div>
             `;
 
@@ -1179,7 +1366,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Erro ao enviar e-mail');
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Erro ao enviar e-mail');
                 }
 
                 showNotification('E-mail enviado com sucesso!', 'success');
@@ -1187,16 +1375,21 @@
 
             } catch (error) {
                 console.error('Erro ao enviar e-mail:', error);
-                showNotification('Erro ao enviar e-mail. Tente novamente.', 'error');
+                showNotification(`Erro ao enviar e-mail: ${error.message}`, 'error');
             }
         }
 
         // ===== SISTEMA DE ESTATÍSTICAS =====
         async function updateStats() {
             try {
-                const homens = allParticipants.filter(p => p.sexo === 'MASCULINO').length;
-                const mulheres = allParticipants.filter(p => p.sexo === 'FEMININO').length;
-                const total = allParticipants.length;
+                // Contar apenas participantes que fizeram algum pagamento (parcial ou completo)
+                const pagantes = allParticipants.filter(p => 
+                    p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO'
+                );
+                
+                const homens = pagantes.filter(p => p.sexo === 'MASCULINO').length;
+                const mulheres = pagantes.filter(p => p.sexo === 'FEMININO').length;
+                const total = pagantes.length;
 
                 document.getElementById('total-homens').textContent = homens;
                 document.getElementById('total-mulheres').textContent = mulheres;
@@ -1221,15 +1414,22 @@
 
         function updateDashboard() {
             const filterData = document.getElementById('filter-data').value;
+            const filterAtendente = document.getElementById('filter-atendente').value;
             const filterForma = document.getElementById('filter-forma').value;
             const filterStatus = document.getElementById('filter-status').value;
 
             let filteredParticipants = allParticipants;
 
             if (filterData) {
-                filteredParticipants = filteredParticipants.filter(p => 
-                    new Date(p.data_inscricao).toDateString() === new Date(filterData).toDateString()
-                );
+                filteredParticipants = filteredParticipants.filter(p => {
+                    const inscricaoDate = convertToLocalTime(p.data_inscricao);
+                    const filterDate = new Date(filterData);
+                    return inscricaoDate.toDateString() === filterDate.toDateString();
+                });
+            }
+
+            if (filterAtendente) {
+                filteredParticipants = filteredParticipants.filter(p => p.atendente === filterAtendente);
             }
 
             if (filterForma) {
@@ -1242,12 +1442,14 @@
 
             // Calcular métricas
             const totalInscricoes = filteredParticipants.length;
-            const preInscricoes = filteredParticipants.filter(p => p.status_pagamento === 'ENTRADA-PRÉ').length;
+            const preInscricoes = filteredParticipants.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length;
             const pagosCompleto = filteredParticipants.filter(p => p.status_pagamento === 'PAGO').length;
             
             const valorPix = filteredParticipants.filter(p => p.forma_pagamento === 'PIX').length;
             const valorDinheiro = filteredParticipants.filter(p => p.forma_pagamento === 'DINHEIRO').length;
-            const valorCartao = filteredParticipants.filter(p => p.forma_pagamento === 'CARTÃO').length;
+            const valorCartao = filteredParticipants.filter(p => 
+                p.forma_pagamento === 'CARTÃO DE CRÉDITO' || p.forma_pagamento === 'CARTÃO DE DÉBITO'
+            ).length;
 
             // Atualizar interface
             document.getElementById('dash-total-inscricoes').textContent = totalInscricoes;
@@ -1271,7 +1473,8 @@
                     <td>${p.sexo}</td>
                     <td><span class="btn btn-${getStatusClass(p.status_pagamento)}" style="padding: 2px 8px; font-size: 0.7em;">${getStatusText(p.status_pagamento)}</span></td>
                     <td>${p.forma_pagamento || 'N/A'}</td>
-                    <td>${new Date(p.data_inscricao).toLocaleDateString('pt-BR')}</td>
+                    <td>${p.atendente || 'N/A'}</td>
+                    <td>${formatDateTime(convertToLocalTime(p.data_inscricao))}</td>
                 </tr>
             `).join('');
         }
@@ -1279,15 +1482,15 @@
         // ===== LISTA DE GANHADORES =====
         async function generateWinnersList() {
             try {
-                // Buscar os 150 primeiros que fizeram pré-inscrição (R$ 150)
+                // Buscar os 150 primeiros que fizeram pagamento (parcial ou completo) por ordem de data de confirmação
                 const winners = allParticipants
-                    .filter(p => p.status_pagamento === 'ENTRADA-PRÉ' || p.status_pagamento === 'PAGO')
-                    .sort((a, b) => new Date(a.data_inscricao) - new Date(b.data_inscricao))
+                    .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                    .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
                     .slice(0, 150);
 
                 const content = `
                     <div style="margin-bottom: 20px;">
-                        <p style="color: var(--text-light);">Lista dos primeiros 150 participantes que fizeram pré-inscrição (R$ 150,00), por ordem de inscrição.</p>
+                        <p style="color: var(--text-light);">Lista dos primeiros 150 participantes que efetuaram pagamento (parcial ou completo), por ordem de confirmação de pagamento.</p>
                         <p style="color: var(--warning); font-weight: bold;">Total de ganhadores: ${winners.length}/150</p>
                     </div>
                     
@@ -1300,7 +1503,7 @@
                                     <th>Sexo</th>
                                     <th>WhatsApp</th>
                                     <th>Status</th>
-                                    <th>Data Inscrição</th>
+                                    <th>Data Pagamento</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1311,7 +1514,7 @@
                                         <td>${participant.sexo}</td>
                                         <td>${participant.whatsapp}</td>
                                         <td><span class="btn btn-${getStatusClass(participant.status_pagamento)}" style="padding: 2px 6px; font-size: 0.7em;">${getStatusText(participant.status_pagamento)}</span></td>
-                                        <td>${new Date(participant.data_inscricao).toLocaleDateString('pt-BR')}</td>
+                                        <td>${formatDateTime(convertToLocalTime(participant.data_confirmacao_pagamento))}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -1335,8 +1538,8 @@
         function exportWinners() {
             try {
                 const winners = allParticipants
-                    .filter(p => p.status_pagamento === 'ENTRADA-PRÉ' || p.status_pagamento === 'PAGO')
-                    .sort((a, b) => new Date(a.data_inscricao) - new Date(b.data_inscricao))
+                    .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                    .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
                     .slice(0, 150);
 
                 const winnersData = winners.map((p, index) => ({
@@ -1345,7 +1548,7 @@
                     'WhatsApp': p.whatsapp,
                     'Sexo': p.sexo,
                     'Status': getStatusText(p.status_pagamento),
-                    'Data Inscrição': new Date(p.data_inscricao).toLocaleDateString('pt-BR')
+                    'Data Pagamento': formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento))
                 }));
 
                 const wb = XLSX.utils.book_new();
@@ -1362,8 +1565,8 @@
 
         function printWinners() {
             const winners = allParticipants
-                .filter(p => p.status_pagamento === 'ENTRADA-PRÉ' || p.status_pagamento === 'PAGO')
-                .sort((a, b) => new Date(a.data_inscricao) - new Date(b.data_inscricao))
+                .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
                 .slice(0, 150);
 
             const printContent = `
@@ -1382,7 +1585,7 @@
                                 <th style="border: 1px solid #ddd; padding: 8px;">Nome</th>
                                 <th style="border: 1px solid #ddd; padding: 8px;">WhatsApp</th>
                                 <th style="border: 1px solid #ddd; padding: 8px;">Sexo</th>
-                                <th style="border: 1px solid #ddd; padding: 8px;">Data Inscrição</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">Data Pagamento</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1392,14 +1595,14 @@
                                     <td style="border: 1px solid #ddd; padding: 8px;">${p.nome_completo}</td>
                                     <td style="border: 1px solid #ddd; padding: 8px;">${p.whatsapp}</td>
                                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${p.sexo}</td>
-                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${new Date(p.data_inscricao).toLocaleDateString('pt-BR')}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento))}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
                     
                     <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
-                        Gerado em ${new Date().toLocaleString('pt-BR')} - Sistema de Balcão O Retiro 2025
+                        Gerado em ${formatDateTime(new Date())} - Sistema de Balcão O Retiro 2025
                     </div>
                 </div>
             `;
@@ -1432,8 +1635,9 @@
                     'Status Pagamento': p.status_pagamento,
                     'Valor Pago': p.valor_pago,
                     'Forma Pagamento': p.forma_pagamento,
-                    'Data Inscrição': new Date(p.data_inscricao).toLocaleDateString('pt-BR'),
-                    'Data Confirmação': p.data_confirmacao_pagamento ? new Date(p.data_confirmacao_pagamento).toLocaleDateString('pt-BR') : 'N/A'
+                    'Atendente': p.atendente,
+                    'Data Inscrição': formatDateTime(convertToLocalTime(p.data_inscricao)),
+                    'Data Confirmação': p.data_confirmacao_pagamento ? formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento)) : 'N/A'
                 }));
                 
                 const wsInscricoes = XLSX.utils.json_to_sheet(inscricoesData);
@@ -1444,12 +1648,13 @@
                     { 'Métrica': 'Total de Inscrições', 'Valor': allParticipants.length },
                     { 'Métrica': 'Homens', 'Valor': allParticipants.filter(p => p.sexo === 'MASCULINO').length },
                     { 'Métrica': 'Mulheres', 'Valor': allParticipants.filter(p => p.sexo === 'FEMININO').length },
-                    { 'Métrica': 'Pré-inscrições (R$ 150)', 'Valor': allParticipants.filter(p => p.status_pagamento === 'ENTRADA-PRÉ').length },
-                    { 'Métrica': 'Pagos Completo (R$ 520)', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PAGO').length },
+                    { 'Métrica': 'Pago Parcialmente', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length },
+                    { 'Métrica': 'Pago Completo', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PAGO').length },
                     { 'Métrica': 'Pendentes', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PENDENTE').length },
                     { 'Métrica': 'Pagamentos PIX', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'PIX').length },
                     { 'Métrica': 'Pagamentos Dinheiro', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'DINHEIRO').length },
-                    { 'Métrica': 'Pagamentos Cartão', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'CARTÃO').length }
+                    { 'Métrica': 'Pagamentos Cartão Crédito', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'CARTÃO DE CRÉDITO').length },
+                    { 'Métrica': 'Pagamentos Cartão Débito', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'CARTÃO DE DÉBITO').length }
                 ];
                 
                 const wsResumo = XLSX.utils.json_to_sheet(resumoData);
@@ -1457,8 +1662,8 @@
 
                 // Aba 3: Ganhadores de Camisa
                 const winners = allParticipants
-                    .filter(p => p.status_pagamento === 'ENTRADA-PRÉ' || p.status_pagamento === 'PAGO')
-                    .sort((a, b) => new Date(a.data_inscricao) - new Date(b.data_inscricao))
+                    .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
+                    .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
                     .slice(0, 150);
 
                 const winnersData = winners.map((p, index) => ({
@@ -1467,7 +1672,7 @@
                     'WhatsApp': p.whatsapp,
                     'Sexo': p.sexo,
                     'Status': p.status_pagamento,
-                    'Data Inscrição': new Date(p.data_inscricao).toLocaleDateString('pt-BR')
+                    'Data Pagamento': formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento))
                 }));
                 
                 const wsWinners = XLSX.utils.json_to_sheet(winnersData);
@@ -1518,7 +1723,7 @@
 
         // ===== INICIALIZAÇÃO =====
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('Sistema de Balcão v2.0 - O Retiro 2025 - Carregado e Configurado');
+            console.log('Sistema de Balcão v3.0 - O Retiro 2025 - Carregado e Configurado');
             
             // Verificar se já está logado
             supabase.auth.getSession().then(({ data: { session } }) => {
