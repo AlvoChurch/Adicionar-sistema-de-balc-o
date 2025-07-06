@@ -508,8 +508,12 @@
                     <h3 style="color: var(--primary); margin-bottom: 15px;">🔍 Filtros</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                         <div>
-                            <label style="color: white; margin-bottom: 5px; display: block;">📅 Data:</label>
-                            <input type="date" id="filter-data" class="input" onchange="updateDashboard()">
+                            <label style="color: white; margin-bottom: 5px; display: block;">📅 Data Pagamento:</label>
+                            <input type="date" id="filter-data" class="input" onchange="updateDashboard()" 
+                            title="Filtrar por data do último pagamento realizado">
+                        <div style="font-size: 0.8em; color: #666; margin-top: 3px;">
+                            Filtra por data do último pagamento
+                        </div>
                         </div>
                         <div>
                             <label style="color: white; margin-bottom: 5px; display: block;">👤 Atendente:</label>
@@ -1081,11 +1085,13 @@ function formatCurrency(value) {
                         </div>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: var(--text-light);">
-                            <div><strong>📱 WhatsApp:</strong> ${participant.whatsapp || 'Não informado'}</div>
-                            <div><strong>👥 Sexo:</strong> ${participant.sexo || 'Não informado'}</div>
-                            <div><strong>💰 Valor Pago:</strong> ${participant.valor_pago || 'Não informado'}</div>
-                            <div><strong>💳 Forma:</strong> ${participant.forma_pagamento || 'Não informado'}</div>
-                        </div>
+                        <div><strong>📱 WhatsApp:</strong> ${participant.whatsapp || 'Não informado'}</div>
+                        <div><strong>👥 Sexo:</strong> ${participant.sexo || 'Não informado'}</div>
+                        <div><strong>💰 Valor Pago:</strong> ${participant.valor_pago || 'Não informado'}</div>
+                        <div><strong>💳 Forma:</strong> ${participant.forma_pagamento || 'Não informado'}</div>
+                        <div><strong>🎯 Função:</strong> ${participant.vai_servir_receber || 'Não informado'}</div>
+                        <div><strong>👤 Atendente:</strong> ${participant.atendente || 'Não informado'}</div>
+                    </div>
                         
                         <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                             <button onclick="event.stopPropagation(); openPaymentsModal('${participant.id}')" class="btn btn-success" style="padding: 8px; font-size: 0.8em;">
@@ -1800,6 +1806,25 @@ async function syncInscricaoWithHistory(participantId) {
                     </div>
                 </div>
 
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">🎯 Informações do Retiro</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Função no Retiro:</label>
+                            <select id="edit-funcao" class="input" onchange="updateParticipantFunction('${participantId}', this.value)">
+                                <option value="TRABALHO" ${participant.vai_servir_receber === 'TRABALHO' ? 'selected' : ''}>TRABALHO</option>
+                                <option value="ENCONTRISTA" ${participant.vai_servir_receber === 'ENCONTRISTA' ? 'selected' : ''}>ENCONTRISTA</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cor da Rede:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cor_rede || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="margin-bottom: 20px;">
                     <h4 style="color: var(--primary); margin-bottom: 15px;">💰 Informações de Pagamento</h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -1877,6 +1902,35 @@ async function syncInscricaoWithHistory(participantId) {
                 showNotification('Erro ao atualizar nome: ' + error.message, 'error');
             }
         }
+
+        async function updateParticipantFunction(participantId, newFunction) {
+        if (!newFunction.trim()) return;
+        
+        try {
+            const { error } = await supabase
+                .from('inscricoes')
+                .update({ 
+                    vai_servir_receber: newFunction.trim().toUpperCase(),
+                    data_ultima_atualizacao: new Date().toISOString()
+                })
+                .eq('id', participantId);
+
+            if (error) throw error;
+
+            // Atualizar dados locais
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (participant) {
+                participant.vai_servir_receber = newFunction.trim().toUpperCase();
+            }
+
+            showNotification('Função atualizada com sucesso!', 'success');
+            searchParticipants(); // Refresh da busca
+
+        } catch (error) {
+            console.error('Erro ao atualizar função:', error);
+            showNotification('Erro ao atualizar função: ' + error.message, 'error');
+        }
+    }
 
         async function deleteParticipant(participantId) {
             if (!confirm('Tem certeza que deseja excluir esta inscrição? Esta ação não pode ser desfeita.')) {
@@ -2031,25 +2085,40 @@ function updateDashboard() {
     const filterForma = document.getElementById('filter-forma').value;
     const filterStatus = document.getElementById('filter-status').value;
 
-    let filteredParticipants = [...allParticipants];
+    // ✅ CORREÇÃO: Para dashboard de fechamento, só considerar quem PAGOU
+    let filteredParticipants = filterData ? 
+    [...allParticipants] : // Se tem filtro de data, mostrar todos e depois filtrar
+    allParticipants.filter(p => p.data_confirmacao_pagamento); // Se não tem filtro, só quem pagou
 
 
-// Aplicar filtro de data (corrigido)
-if (filterData) {
-    filteredParticipants = filteredParticipants.filter(p => {
-        if (!p.data_inscricao) return false;
-        
-        try {
-            const inscricaoDate = new Date(p.data_inscricao);
-            const filterDate = new Date(filterData);
+    // ✅ CORRIGIDO: Filtro por data de pagamento (para fechamento de caixa)
+    if (filterData) {
+        filteredParticipants = filteredParticipants.filter(p => {
+            // Só considerar quem tem data de confirmação de pagamento
+            if (!p.data_confirmacao_pagamento) return false;
             
-            return inscricaoDate.toDateString() === filterDate.toDateString();
-        } catch (error) {
-            console.error('Erro no filtro de data:', error);
-            return false;
-        }
-    });
-}
+            try {
+                const pagamentoDate = new Date(p.data_confirmacao_pagamento);
+                const filterDate = new Date(filterData + 'T00:00:00'); // Força início do dia
+                
+                // Extrair apenas ano, mês e dia para comparação
+                const pagamentoDay = pagamentoDate.getFullYear() + '-' + 
+                                    String(pagamentoDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                    String(pagamentoDate.getDate()).padStart(2, '0');
+                
+                const filterDay = filterDate.getFullYear() + '-' + 
+                                String(filterDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                String(filterDate.getDate()).padStart(2, '0');
+                
+                console.log(`🔍 Comparando: ${pagamentoDay} === ${filterDay}`);
+                
+                return pagamentoDay === filterDay;
+            } catch (error) {
+                console.error('Erro no filtro de data de pagamento:', error);
+                return false;
+            }
+        });
+    }
 
     if (filterAtendente) {
         filteredParticipants = filteredParticipants.filter(p => 
@@ -2117,6 +2186,13 @@ console.log('💰 Total calculado:', totalArrecadado, 'de', filteredParticipants
         <div style="font-size: 0.9em;">R$ ${dinheiroData.valor.toFixed(2).replace('.', ',')}</div>
     `;
     
+    // ✅ DEBUG ANTES DE ATUALIZAR INTERFACE
+    console.log('🔧 ANTES DE ATUALIZAR CARDS:');
+    console.log('creditoData:', creditoData);
+    console.log('debitoData:', debitoData);
+    console.log('Elemento cartao:', document.getElementById('dash-valor-cartao'));
+    console.log('Elemento debito:', document.getElementById('dash-valor-debito'));
+
     // ✅ CARTÃO DE CRÉDITO separado
     document.getElementById('dash-valor-cartao').innerHTML = `
         <div style="font-size: 1.8em; font-weight: bold;">${creditoData.qtd}</div>
@@ -2129,11 +2205,12 @@ console.log('💰 Total calculado:', totalArrecadado, 'de', filteredParticipants
         <div style="font-size: 0.9em;">R$ ${debitoData.valor.toFixed(2).replace('.', ',')}</div>
     `;
 
-    console.log('💳 DEBUG CARTÕES:', { 
-        credito: creditoData, 
-        debito: debitoData, 
-        totalQtd: totalCartaoQtd,
-        totalValor: totalCartaoValor
+    // ✅ DEBUG: Verificar se os elementos existem
+    console.log('🎯 Elementos encontrados:', {
+        cartao: document.getElementById('dash-valor-cartao'),
+        debito: document.getElementById('dash-valor-debito'),
+        creditoData,
+        debitoData
     });
 
     // Atualizar tabela
@@ -2162,6 +2239,7 @@ function calcularPorFormaPagamento(participants, forma) {
         return { qtd: multipleFormsParticipants.length, valor: 0 }; // Valor será calculado no histórico
     }
     
+    // ✅ USAR OS NOMES EXATOS DO BANCO
     const filtered = participants.filter(p => 
         p.forma_pagamento === forma && 
         p.valor_pago && 
@@ -2172,6 +2250,8 @@ function calcularPorFormaPagamento(participants, forma) {
     const valor = filtered.reduce((total, p) => 
         total + parseFloat(p.valor_pago.replace(',', '.')), 0
     );
+    
+    console.log(`💳 Debug ${forma}:`, { qtd, valor, filtered: filtered.map(p => p.nome_completo) });
     
     return { qtd, valor };
 }
@@ -2511,6 +2591,7 @@ function updateInscricoesTable(participants) {
         window.showParticipantDetails = showParticipantDetails;
         window.closeDetailsModal = closeDetailsModal;
         window.updateParticipantName = updateParticipantName;
+        window.updateParticipantFunction = updateParticipantFunction;
         window.deleteParticipant = deleteParticipant;
         window.openStatusModal = openStatusModal;
         window.closeStatusModal = closeStatusModal;
