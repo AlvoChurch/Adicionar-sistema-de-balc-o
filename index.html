@@ -1737,11 +1737,15 @@ async function syncInscricaoWithHistory(participantId) {
                 </div>
                 
                 <div class="receipt-footer">
-                    <p style="margin: 0; font-size: 0.8em;">PAGAMENTO QUITADO!</p>
-                    <p style="margin: 5px 0 0 0; font-size: 0.8em;">Participação confirmada!</p>
-                    <p style="margin: 5px 0 0 0; font-size: 0.7em;">Parabéns pelo seu posicionamento!</p>
-                    <p style="margin: 10px 0 0 0; font-size: 0.7em;">ALVO CHURCH</p>
-                </div>
+                <p style="margin: 0; font-size: 0.8em; font-weight: bold; color: ${participant.status_pagamento === 'PAGO' ? '#22c55e' : participant.status_pagamento === 'PAGO PARCIALMENTE' ? '#fbbf24' : '#ef4444'};">
+                    ${participant.status_pagamento === 'PAGO' ? 'PAGAMENTO QUITADO!' : participant.status_pagamento === 'PAGO PARCIALMENTE' ? 'PAGAMENTO PARCIAL REALIZADO!' : 'PAGAMENTO PENDENTE'}
+                </p>
+                <p style="margin: 5px 0 0 0; font-size: 0.8em;">
+                    ${participant.status_pagamento === 'PAGO' ? 'Participação confirmada!' : participant.status_pagamento === 'PAGO PARCIALMENTE' ? 'Pré-inscrição confirmada!' : 'Aguardando pagamento...'}
+                </p>
+                <p style="margin: 5px 0 0 0; font-size: 0.7em;">Parabéns pelo seu posicionamento!</p>
+                <p style="margin: 10px 0 0 0; font-size: 0.7em;">ALVO CHURCH</p>
+            </div>
             `;
 
             document.getElementById('receipt-content').innerHTML = receiptContent;
@@ -1989,51 +1993,85 @@ async function syncInscricaoWithHistory(participantId) {
             currentParticipant = null;
         }
 
+      // ===== FUNÇÃO CORRIGIDA PARA ENVIO VIA RESEND =====
+
         async function sendEmailReceipt() {
-        const email = document.getElementById('email-input').value;
-        
-        if (!email || !validateEmail(email) || !currentParticipant) {
-            showNotification('Dados inválidos para envio', 'error');
-            return;
-        }
-
-        try {
-            // ✅ SOLUÇÃO: Usar mailto (abre cliente de email local)
-            const subject = encodeURIComponent(`Comprovante - O Retiro 2025 - ${currentParticipant.nome_completo}`);
-            const body = encodeURIComponent(`
-    Olá ${currentParticipant.nome_completo}!
-
-    Segue seu comprovante de inscrição para O Retiro 2025:
-
-    📋 DADOS PESSOAIS:
-    Nome: ${currentParticipant.nome_completo}
-    WhatsApp: ${currentParticipant.whatsapp}
-    Sexo: ${currentParticipant.sexo}
-
-    💰 PAGAMENTO:
-    Status: ${getStatusText(currentParticipant.status_pagamento)}
-    Valor Pago: ${currentParticipant.valor_pago || 'N/A'}
-    Forma: ${currentParticipant.forma_pagamento || 'N/A'}
-    Data Inscrição: ${new Date(currentParticipant.data_inscricao).toLocaleDateString('pt-BR')}
-
-    🏕️ VISÃO • MISSÃO • PRESSÃO
-    O Retiro 2025
-
-    ---
-    Sistema de Balcão - Gerado automaticamente
-            `);
+            const email = document.getElementById('email-input').value;
             
-            const mailtoLink = `mailto:${email}?subject=${subject}&body=${body}`;
-            window.open(mailtoLink);
-            
-            showNotification('Cliente de e-mail aberto! Complete o envio manualmente.', 'info');
-            closeEmailModal();
+            if (!email || !validateEmail(email) || !currentParticipant) {
+                showNotification('Dados inválidos para envio', 'error');
+                return;
+            }
 
-        } catch (error) {
-            console.error('Erro ao preparar e-mail:', error);
-            showNotification('Erro ao preparar e-mail', 'error');
+            try {
+                // ✅ USAR MAILTO com o e-mail da ALVO
+                const subject = encodeURIComponent(`Comprovante - O Retiro 2025 - ${currentParticipant.nome_completo}`);
+                const body = encodeURIComponent(`Olá ${currentParticipant.nome_completo}!
+
+        Segue seu comprovante de inscrição para O Retiro 2025:
+
+        📋 DADOS PESSOAIS:
+        Nome: ${currentParticipant.nome_completo}
+        WhatsApp: ${currentParticipant.whatsapp}
+        E-mail: ${currentParticipant.email || email}
+        Sexo: ${currentParticipant.sexo}
+        Idade: ${currentParticipant.idade || 'N/A'}
+        Cidade: ${currentParticipant.cidade || 'N/A'}
+
+        🎯 INFORMAÇÕES DO RETIRO:
+        Função: ${currentParticipant.vai_servir_receber || 'N/A'}
+        Cor da Rede: ${currentParticipant.cor_rede || 'N/A'}
+
+        💰 PAGAMENTO:
+        Status: ${getStatusText(currentParticipant.status_pagamento)}
+        Valor Pago: R$ ${currentParticipant.valor_pago || 'N/A'}
+        Forma de Pagamento: ${currentParticipant.forma_pagamento || 'N/A'}
+        Data da Inscrição: ${new Date(currentParticipant.data_inscricao).toLocaleDateString('pt-BR')}
+        ${currentParticipant.data_confirmacao_pagamento ? 'Data de Confirmação: ' + new Date(currentParticipant.data_confirmacao_pagamento).toLocaleDateString('pt-BR') : ''}
+
+        ✅ INSCRIÇÃO CONFIRMADA!
+        Sua participação está garantida!
+        Parabéns pelo seu posicionamento!
+
+        🏕️ VISÃO • MISSÃO • PRESSÃO
+        O Retiro 2025
+
+        ---
+        ALVO CHURCH
+        Sistema de Balcão - Gerado automaticamente em ${formatDateTime(new Date())}
+        Atendente: ${currentParticipant.atendente || 'Sistema'}
+
+        Para dúvidas, entre em contato:
+        WhatsApp: (41) 99999-9999
+        E-mail: oalvocuritiba@gmail.com`);
+                
+                // ✅ CONSTRUIR LINK MAILTO
+                const mailtoLink = `mailto:${email}?cc=oalvocuritiba@gmail.com&subject=${subject}&body=${body}`;
+                
+                // ✅ ABRIR CLIENTE DE E-MAIL
+                window.open(mailtoLink);
+                
+                // ✅ REGISTRAR NO BANCO QUE FOI ENVIADO
+                try {
+                    await supabase
+                        .from('inscricoes')
+                        .update({ 
+                            ultimo_email_enviado: new Date().toISOString(),
+                            email_atualizado: email
+                        })
+                        .eq('id', currentParticipant.id);
+                } catch (dbError) {
+                    console.warn('Aviso: Não foi possível registrar envio no banco:', dbError);
+                }
+                
+                showNotification('Cliente de e-mail aberto! Complete o envio manualmente.', 'success');
+                closeEmailModal();
+
+            } catch (error) {
+                console.error('Erro ao preparar e-mail:', error);
+                showNotification('Erro ao preparar e-mail: ' + error.message, 'error');
+            }
         }
-    }
 
         // ===== SISTEMA DE ESTATÍSTICAS MELHORADO =====
         async function updateStats() {
