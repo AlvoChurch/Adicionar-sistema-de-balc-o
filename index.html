@@ -798,6 +798,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script>
+
         // ===== CONFIGURAÇÃO SUPABASE (ATUALIZADA) =====
         const SUPABASE_URL = 'https://ubczydbigeznmxmfmdsi.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InViY3p5ZGJpZ2V6bm14bWZtZHNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzNzg4MTUsImV4cCI6MjA2Njk1NDgxNX0.ZK4Hy6n8PdY0NY_PUlmlXtjHzVuNZc_vtOQe7CX8fAQ';
@@ -1837,9 +1838,14 @@ async function syncInscricaoWithHistory(participantId) {
                             <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${getStatusText(participant.status_pagamento)}</div>
                         </div>
                         <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Valor Pago:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.valor_pago || 'N/A'}</div>
-                        </div>
+                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Valor Pago:</label>
+                        ${showDeleteButton ? 
+                            `<input type="text" id="edit-valor-pago" class="input" value="${participant.valor_pago || ''}" 
+                                onblur="updateParticipantValuePaid('${participantId}', this.value)" 
+                                placeholder="Ex: 150,00" style="background: #333; border: 2px solid #ff6b35;">` :
+                            `<div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.valor_pago || 'N/A'}</div>`
+                        }
+                    </div>
                         <div>
                             <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Forma de Pagamento:</label>
                             <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.forma_pagamento || 'N/A'}</div>
@@ -2614,6 +2620,254 @@ function updateInscricoesTable(participants) {
             });
         });
 
+                // ===== FUNÇÃO DE EDIÇÃO DE VALOR (ADM) =====
+       // ===== FUNÇÃO CORRIGIDA PARA EDIÇÃO DE VALOR (ADM) =====
+window.updateParticipantValuePaid = async function(participantId, newValue) {
+    if (!newValue.trim()) return;
+    
+    const numericValue = parseFloat(newValue.replace(',', '.'));
+    if (isNaN(numericValue) || numericValue < 0) {
+        alert('Valor inválido!');
+        return;
+    }
+    
+    if (!confirm(`Corrigir valor para R$ ${numericValue.toFixed(2).replace('.', ',')}?`)) {
+        return;
+    }
+    
+    try {
+        console.log('🔄 Iniciando correção para participante:', participantId);
+        
+        // ✅ OPÇÃO 1: ATUALIZAR DIRETAMENTE NA TABELA PRINCIPAL (SEM ALTERAR FORMA DE PAGAMENTO)
+        // Primeiro, buscar dados atuais para preservar forma de pagamento
+        const { data: currentData, error: fetchCurrentError } = await supabase
+            .from('inscricoes')
+            .select('valor_pago, forma_pagamento, observacoes')
+            .eq('id', participantId)
+            .single();
+            
+        if (fetchCurrentError) {
+            console.error('❌ Erro ao buscar dados atuais:', fetchCurrentError);
+            throw fetchCurrentError;
+        }
+        
+        const valorAnterior = currentData.valor_pago || 'N/A';
+        const observacaoAjuste = `Valor ajustado de R$ ${valorAnterior} para R$ ${numericValue.toFixed(2).replace('.', ',')} em ${new Date().toLocaleString('pt-BR')} por adm`;
+        const observacoesAtualizadas = currentData.observacoes ? 
+            `${currentData.observacoes} | ${observacaoAjuste}` : 
+            observacaoAjuste;
+        
+        const { error: updateError } = await supabase
+            .from('inscricoes')
+            .update({
+                valor_pago: numericValue.toFixed(2).replace('.', ','),
+                observacoes: observacoesAtualizadas,
+                data_ultima_atualizacao: new Date().toISOString(),
+                atendente: 'adm'
+                // ✅ NÃO ALTERAR forma_pagamento - mantém a original
+            })
+            .eq('id', participantId);
+            
+        if (updateError) {
+            console.error('❌ Erro no update direto:', updateError);
+            throw updateError;
+        }
+        
+        console.log('✅ Valor atualizado na tabela principal');
+        
+        // ✅ OPÇÃO 2: SE QUISER MANTER HISTÓRICO, BUSCAR E ATUALIZAR ÚLTIMO PAGAMENTO
+        const { data: payments, error: fetchError } = await supabase
+            .from('pagamentos_históricos')
+            .select('*')
+            .eq('inscricao_id', participantId)
+            .order('criado_em', { ascending: false })
+            .limit(1);
+            
+        if (fetchError) {
+            console.warn('⚠️ Aviso: Não foi possível buscar histórico:', fetchError);
+        } else if (payments && payments.length > 0) {
+            // Atualizar último pagamento no histórico (SEM ALTERAR FORMA DE PAGAMENTO)
+            const ultimoPagamento = payments[0];
+            const { error: historyError } = await supabase
+                .from('pagamentos_históricos')
+                .update({
+                    valor_pago: numericValue,
+                    observacoes: `Valor ajustado de R$ ${ultimoPagamento.valor_pago} para R$ ${numericValue} em ${new Date().toLocaleString('pt-BR')} por adm`
+                    // ✅ NÃO ALTERAR forma_pagamento - mantém a original
+                })
+                .eq('id', payments[0].id);
+                
+            if (historyError) {
+                console.warn('⚠️ Aviso: Não foi possível atualizar histórico:', historyError);
+            } else {
+                console.log('✅ Histórico também atualizado');
+            }
+        }
+        
+        // ✅ ATUALIZAR DADOS LOCAIS (PRESERVANDO FORMA DE PAGAMENTO)
+        const participantIndex = allParticipants.findIndex(p => p.id == participantId);
+        if (participantIndex !== -1) {
+            allParticipants[participantIndex].valor_pago = numericValue.toFixed(2).replace('.', ',');
+            allParticipants[participantIndex].observacoes = observacoesAtualizadas;
+            // ✅ NÃO ALTERAR forma_pagamento - mantém a original
+            
+            // Recalcular status baseado no novo valor
+            if (numericValue >= 520) {
+                allParticipants[participantIndex].status_pagamento = 'PAGO';
+            } else if (numericValue >= 150) {
+                allParticipants[participantIndex].status_pagamento = 'PAGO PARCIALMENTE';
+            } else {
+                allParticipants[participantIndex].status_pagamento = 'PENDENTE';
+            }
+        }
+        
+        // ✅ ATUALIZAR INTERFACE
+        await updateStats();
+        searchParticipants(); // Refresh da busca atual
+        
+        // Se dashboard estiver aberto, atualizar também
+        if (document.getElementById('dashboard-container').style.display !== 'none') {
+            updateDashboard();
+        }
+        
+        alert('✅ Valor corrigido com sucesso! (Forma de pagamento preservada)');
+        console.log('🎉 Correção finalizada - valor ajustado, forma de pagamento mantida');
+        
+    } catch (error) {
+        console.error('❌ Erro completo:', error);
+        alert('❌ Erro: ' + error.message);
+    }
+};
+
+        // ===== FUNÇÃO ALTERNATIVA: CORRIGIR ÚLTIMO PAGAMENTO NO HISTÓRICO =====
+        window.correctLastPayment = async function(participantId, newValue) {
+            if (!newValue.trim()) return;
+            
+            const numericValue = parseFloat(newValue.replace(',', '.'));
+            if (isNaN(numericValue) || numericValue < 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!confirm(`Corrigir ÚLTIMO pagamento para R$ ${numericValue.toFixed(2).replace('.', ',')}?`)) {
+                return;
+            }
+            
+            try {
+                console.log('🔄 Buscando último pagamento para correção...');
+                
+                // Buscar último pagamento
+                const { data: payments, error: fetchError } = await supabase
+                    .from('pagamentos_históricos')
+                    .select('*')
+                    .eq('inscricao_id', participantId)
+                    .order('criado_em', { ascending: false })
+                    .limit(1);
+                    
+                if (fetchError) throw fetchError;
+                
+                if (!payments || payments.length === 0) {
+                    // Criar primeiro pagamento se não existir
+                    const { error: insertError } = await supabase
+                        .from('pagamentos_históricos')
+                        .insert({
+                            inscricao_id: parseInt(participantId),
+                            valor_pago: numericValue,
+                            forma_pagamento: 'CORREÇÃO ADMINISTRATIVA',
+                            atendente: 'adm',
+                            observacoes: `Valor inicial inserido via correção em ${new Date().toLocaleString('pt-BR')}`
+                        });
+                        
+                    if (insertError) throw insertError;
+                    console.log('✅ Primeiro pagamento criado');
+                } else {
+                    // Atualizar último pagamento
+                    const ultimoPagamento = payments[0];
+                    const { error: updateError } = await supabase
+                        .from('pagamentos_históricos')
+                        .update({
+                            valor_pago: numericValue,
+                            observacoes: `Valor corrigido de R$ ${ultimoPagamento.valor_pago} para R$ ${numericValue} via ADM em ${new Date().toLocaleString('pt-BR')}`
+                        })
+                        .eq('id', ultimoPagamento.id);
+                        
+                    if (updateError) throw updateError;
+                    console.log('✅ Último pagamento corrigido');
+                }
+                
+                // Forçar sincronização completa
+                await forceSyncInscricaoWithHistory(participantId);
+                await loadParticipants();
+                await updateStats();
+                
+                // Atualizar interface
+                searchParticipants();
+                if (document.getElementById('dashboard-container').style.display !== 'none') {
+                    updateDashboard();
+                }
+                
+                alert('✅ Último pagamento corrigido com sucesso!');
+                
+            } catch (error) {
+                console.error('❌ Erro ao corrigir último pagamento:', error);
+                alert('❌ Erro: ' + error.message);
+            }
+        };
+
+        // ===== FUNÇÃO PARA LIMPAR PAGAMENTOS DUPLICADOS =====
+        window.cleanDuplicatePayments = async function(participantId) {
+            if (!confirm('Limpar pagamentos duplicados? Manterá apenas o último.')) {
+                return;
+            }
+            
+            try {
+                console.log('🧹 Limpando pagamentos duplicados...');
+                
+                // Buscar todos os pagamentos
+                const { data: payments, error: fetchError } = await supabase
+                    .from('pagamentos_históricos')
+                    .select('*')
+                    .eq('inscricao_id', participantId)
+                    .order('criado_em', { ascending: false });
+                    
+                if (fetchError) throw fetchError;
+                
+                if (payments.length <= 1) {
+                    alert('Nenhum pagamento duplicado encontrado.');
+                    return;
+                }
+                
+                // Manter apenas o primeiro (mais recente) e deletar os outros
+                const toDelete = payments.slice(1).map(p => p.id);
+                
+                const { error: deleteError } = await supabase
+                    .from('pagamentos_históricos')
+                    .delete()
+                    .in('id', toDelete);
+                    
+                if (deleteError) throw deleteError;
+                
+                console.log(`🗑️ ${toDelete.length} pagamentos duplicados removidos`);
+                
+                // Sincronizar
+                await forceSyncInscricaoWithHistory(participantId);
+                await loadParticipants();
+                await updateStats();
+                
+                alert(`✅ ${toDelete.length} pagamentos duplicados removidos!`);
+                
+            } catch (error) {
+                console.error('❌ Erro ao limpar duplicados:', error);
+                alert('❌ Erro: ' + error.message);
+            }
+        };
+
+        console.log('✅ Funções de correção atualizadas!');
+        console.log('📋 Funções disponíveis:');
+        console.log('- updateParticipantValuePaid(id, valor) - Corrige valor na tabela principal');
+        console.log('- correctLastPayment(id, valor) - Corrige último pagamento no histórico'); 
+        console.log('- cleanDuplicatePayments(id) - Remove pagamentos duplicados');
+
         // ===== FUNÇÕES GLOBAIS PARA COMPATIBILIDADE =====
         window.logout = logout;
         window.showDashboard = showDashboard;
@@ -2649,6 +2903,7 @@ function updateInscricoesTable(participants) {
         window.deletePayment = deletePayment;
         window.updateFinalStatus = updateFinalStatus;
         window.syncAllParticipantsWithHistory = syncAllParticipantsWithHistory;
+        window.updateParticipantValuePaid = updateParticipantValuePaid;
 
         // ===== EVENT LISTENERS PARA FILTROS =====
         document.getElementById('filter-data').addEventListener('change', updateDashboard);
