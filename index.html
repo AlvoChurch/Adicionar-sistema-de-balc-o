@@ -242,6 +242,13 @@
             padding: 20px;
             margin-bottom: 20px;
         }
+        /* Responsive para resumo financeiro */
+        @media (max-width: 768px) {
+            .resumo-sections {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
         
         /* Recibo */
         .receipt-modal .modal-content {
@@ -527,8 +534,8 @@
                                 <option value="">Todas as formas</option>
                                 <option value="PIX">PIX</option>
                                 <option value="DINHEIRO">Dinheiro</option>
-                                <option value="CT-CRÉDITO">Cartão de Crédito</option>
-                                <option value="CT-DÉBITO">Cartão de Débito</option>
+                                <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                                <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
                             </select>
                         </div>
                         <div>
@@ -542,7 +549,6 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Métricas Principais -->
                 <div class="dashboard-grid">
                     <div class="metric-card">
@@ -591,6 +597,7 @@
                                     <th>Sexo</th>
                                     <th>Status Pagamento</th>
                                     <th>Forma Pagamento</th>
+                                    <th>Valor Pago no Dia</th>
                                     <th>Atendente</th>
                                     <th>Data Inscrição</th>
                                 </tr>
@@ -858,27 +865,55 @@
             return regex.test(email);
         }
 
-function formatCurrency(value) {
-            if (!value) return 'R$ 0,00';
-            const numValue = parseFloat(value.replace(',', '.'));
-            return new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL'
-            }).format(numValue);
+        function formatCurrency(value) {
+            const num = typeof value === 'string' ? parseFloat(value) : value;
+            if (isNaN(num)) return 'R$ 0,00';
+            return `R$ ${num.toFixed(2).replace('.', ',')}`;
         }
 
-        function convertToLocalTime(utcDateString) {
-        if (!utcDateString) return new Date();
+        function formatDate(dateObj) {
+            const data = new Date(dateObj);
+            const dia = String(data.getDate()).padStart(2, '0');
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const ano = data.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+}
+        async function calcularValorPagoDoDiaRecibo(inscricaoId) {
+            try {
+                const dataFiltro = document.getElementById('filter-data').value || new Date().toISOString().split('T')[0];
 
-        try {
-            const date = new Date(utcDateString);
-            // ✅ Se já está em horário local, não converter
-            return date;
-        } catch (error) {
-            console.error('Erro ao converter data:', error);
-            return new Date();
-        }    
-    }
+                const { data: pagamentosDia, error } = await supabase
+                    .from('pagamentos_históricos')
+                    .select('valor_pago')
+                    .eq('inscricao_id', inscricaoId)
+                    .gte('data_pagamento', dataFiltro + 'T00:00:00')
+                    .lt('data_pagamento', dataFiltro + 'T23:59:59');
+
+                if (error || !pagamentosDia) return 0;
+
+                const totalDia = pagamentosDia.reduce((total, p) => {
+                    const val = parseFloat(p.valor_pago);
+                    return total + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                return totalDia;
+            } catch (error) {
+                console.error('❌ Erro ao calcular valor do dia no recibo:', error);
+                return 0;
+            }
+        }
+                function convertToLocalTime(utcDateString) {
+                if (!utcDateString) return new Date();
+
+                try {
+                    const date = new Date(utcDateString);
+                    // ✅ Se já está em horário local, não converter
+                    return date;
+                } catch (error) {
+                    console.error('Erro ao converter data:', error);
+                    return new Date();
+                }    
+            }
 
         // ===== SISTEMA DE AUTENTICAÇÃO MELHORADO =====
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -1210,7 +1245,7 @@ function formatCurrency(value) {
                             <span class="btn btn-info" style="padding: 4px 8px; font-size: 0.7em;">${payment.forma_pagamento}</span>
                         </div>
                         <div style="font-size: 0.8em; color: #ccc;">
-                            ${formatDateTime(convertToLocalTime(payment.pagamento_de_dados))}
+                        ${formatDateTime(convertToLocalTime(payment.data_pagamento))}
                         </div>
                         <div style="text-align: right;">
                             <button onclick="deletePayment(${payment.id})" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.7em;">
@@ -1339,41 +1374,6 @@ function formatCurrency(value) {
             }
         }
 
-        // ===== SINCRONIZAÇÃO GLOBAL AUTOMÁTICA =====
-    async function syncAllParticipantsWithHistory() {
-        console.log('🔄 Iniciando sincronização global...');
-        
-        try {
-            // 1. Buscar todos os participantes
-            const { data: participants, error: participantsError } = await supabase
-                .from('inscricoes')
-                .select('id, valor_pago')
-                .eq('status', 'ATIVO');
-
-            if (participantsError) throw participantsError;
-
-            console.log(`📊 Sincronizando ${participants.length} participantes...`);
-
-            // 2. Sincronizar cada participante
-            for (const participant of participants) {
-                await forceSyncInscricaoWithHistory(participant.id);
-                console.log(`✅ Sincronizado: ID ${participant.id}`);
-            }
-
-            console.log('🎉 Sincronização global concluída!');
-            
-            // 3. Recarregar dados
-            await loadParticipants();
-            await updateStats();
-            
-            showNotification('Sincronização global concluída!', 'success');
-
-        } catch (error) {
-            console.error('❌ Erro na sincronização global:', error);
-            showNotification('Erro na sincronização global', 'error');
-        }
-    }
-
 // Adicionar novo pagamento
 async function addNewPayment() {
     const value = document.getElementById('new-payment-value').value.trim();
@@ -1447,7 +1447,7 @@ async function addNewPayment() {
                 if (error) throw error;
 
                 // Sincronizar com tabela principal
-                await syncInscricaoWithHistory(currentParticipant.id);
+                await forceSyncInscricaoWithHistory(currentParticipant.id);
 
                 // Recarregar histórico
                 await loadPaymentHistory(currentParticipant.id);
@@ -1456,7 +1456,7 @@ async function addNewPayment() {
                 await updateStats();
                 searchParticipants(); // Refresh da busca
 
-showNotification('Pagamento excluído com sucesso!', 'success');
+                showNotification('Pagamento excluído com sucesso!', 'success');
 
             } catch (error) {
                 console.error('Erro ao excluir pagamento:', error);
@@ -1464,619 +1464,10 @@ showNotification('Pagamento excluído com sucesso!', 'success');
             }
         }
 
-        // Atualizar status final da inscrição
-        async function updateFinalStatus() {
-            try {
-                // Buscar todos os pagamentos
-                const { data, error } = await supabase
-                    .from('pagamentos_históricos')
-                    .select('*')
-                    .eq('inscricao_id', currentParticipant.id);
-
-                if (error) throw error;
-
-                const payments = data || [];
-                const totalPaid = payments.reduce((sum, payment) => sum + parseFloat(payment.valor_pago), 0);
-
-                // Determinar status baseado no valor total
-                    let newStatus, newValorPago;
-                    if (totalPaid >= 520) {
-                        newStatus = 'PAGO';
-                        newValorPago = totalPaid.toFixed(2).replace('.', ','); // Manter valor real total
-                    } else if (totalPaid >= 150) {
-                        newStatus = 'PAGO PARCIALMENTE';
-                        newValorPago = totalPaid.toFixed(2).replace('.', ',');
-                    } else {
-                        newStatus = 'PENDENTE';
-                        newValorPago = totalPaid.toFixed(2).replace('.', ',');
-                    }
-
-                // Atualizar na tabela principal
-                const { error: updateError } = await supabase
-                    .from('inscricoes')
-                    .update({
-                        status_pagamento: newStatus,
-                        valor_pago: newValorPago,
-                        data_confirmacao_pagamento: totalPaid > 0 ? new Date().toISOString() : null,
-                        atendente: currentUser.email.split('@')[0]
-                    })
-                    .eq('id', currentParticipant.id);
-
-                if (updateError) throw updateError;
-
-                // Atualizar dados locais
-                const participantIndex = allParticipants.findIndex(p => p.id === currentParticipant.id);
-                if (participantIndex !== -1) {
-                    allParticipants[participantIndex].status_pagamento = newStatus;
-                    allParticipants[participantIndex].valor_pago = newValorPago;
-                }
-
-                closePaymentsModal();
-                await updateStats();
-                searchParticipants(); // Refresh da busca
-                
-                showNotification('Status atualizado com sucesso!', 'success');
-
-            } catch (error) {
-                console.error('Erro ao atualizar status:', error);
-                showNotification('Erro ao atualizar status: ' + error.message, 'error');
-            }
-        }
-
-        // Recalcular e sincronizar inscrição com histórico
-async function syncInscricaoWithHistory(participantId) {
-    try {
-        // Buscar todos os pagamentos do histórico
-        const { data: payments, error } = await supabase
-            .from('pagamentos_históricos')
-            .select('*')
-            .eq('inscricao_id', participantId);
-
-        if (error) throw error;
-
-        const totalPaid = payments.reduce((sum, payment) => sum + parseFloat(payment.valor_pago), 0);
-        
-        // Determinar status e forma de pagamento principal
-        let newStatus, newValorPago, newFormaPagamento;
-        
-        if (totalPaid >= 520) {
-        newStatus = 'PAGO';
-        } else if (totalPaid >= 150 && totalPaid < 520) {
-            newStatus = 'PAGO PARCIALMENTE';
-        } else if (totalPaid > 0 && totalPaid < 150) {
-            newStatus = 'PENDENTE'; // Pagou algo mas menos que mínimo
-        } else {
-            newStatus = 'PENDENTE'; // Não pagou nada
-        }
-        
-        newValorPago = totalPaid.toFixed(2).replace('.', ',');
-        
-        // Forma de pagamento: se múltiplas, usar "MÚLTIPLAS FORMAS"
-        const formas = [...new Set(payments.map(p => p.forma_pagamento))];
-        newFormaPagamento = formas.length > 1 ? 'MÚLTIPLAS FORMAS' : (formas[0] || 'N/A');
-
-        // Atualizar tabela principal
-        const { error: updateError } = await supabase
-            .from('inscricoes')
-            .update({
-                status_pagamento: newStatus,
-                valor_pago: newValorPago,
-                forma_pagamento: newFormaPagamento,
-                data_confirmacao_pagamento: totalPaid > 0 ? new Date().toISOString() : null,
-                atendente: currentUser.email.split('@')[0]
-            })
-            .eq('id', participantId);
-
-        if (updateError) throw updateError;
-
-        // Atualizar dados locais
-        const participantIndex = allParticipants.findIndex(p => p.id == participantId);
-        if (participantIndex !== -1) {
-            allParticipants[participantIndex].status_pagamento = newStatus;
-            allParticipants[participantIndex].valor_pago = newValorPago;
-            allParticipants[participantIndex].forma_pagamento = newFormaPagamento;
-        }
-
-        return { totalPaid, newStatus, newFormaPagamento };
-
-    } catch (error) {
-        console.error('Erro ao sincronizar:', error);
-        throw error;
-    }
-}
-
         // Fechar modal
         function closePaymentsModal() {
             document.getElementById('payments-modal').style.display = 'none';
             currentParticipant = null;
-        }
-
-        // ===== MODAL DE ATUALIZAÇÃO DE STATUS MELHORADO =====
-        function openStatusModal(participantId) {
-            const participant = allParticipants.find(p => p.id == participantId);
-            if (!participant) return;
-
-            currentParticipant = participant;
-
-            document.getElementById('status-participant-info').innerHTML = `
-                <h4 style="color: var(--primary); margin-bottom: 10px;">${participant.nome_completo}</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
-                    <div><strong>WhatsApp:</strong> ${participant.whatsapp}</div>
-                    <div><strong>Status Atual:</strong> ${getStatusText(participant.status_pagamento)}</div>
-                    <div><strong>Valor Pago:</strong> ${participant.valor_pago || 'N/A'}</div>
-                </div>
-            `;
-
-            // Pré-preencher campos baseado no status atual
-            document.getElementById('new-status').value = '';
-            document.getElementById('new-forma-pagamento').value = participant.forma_pagamento || '';
-            document.getElementById('new-valor-pago').value = participant.valor_pago || '';
-            
-            document.getElementById('status-modal').style.display = 'flex';
-        }
-
-        function updateValueBasedOnStatus() {
-            const status = document.getElementById('new-status').value;
-            const valorField = document.getElementById('new-valor-pago');
-            
-            switch(status) {
-                case 'PRÉ-INSCRIÇÃO':
-                    valorField.value = '150,00';
-                    break;
-                case 'PAGO COMPLETO':
-                    valorField.value = '520,00';
-                    break;
-                case 'PENDENTE':
-                    valorField.value = '0,00';
-                    break;
-            }
-        }
-
-        function closeStatusModal() {
-            document.getElementById('status-modal').style.display = 'none';
-            currentParticipant = null;
-        }
-
-        async function updateParticipantStatus() {
-        if (!currentParticipant) return;
-
-        const newStatus = document.getElementById('new-status').value;
-        const newFormaPagamento = document.getElementById('new-forma-pagamento').value;
-        const newValorPago = document.getElementById('new-valor-pago').value;
-
-        if (!newStatus || !newFormaPagamento || !newValorPago) {
-            showNotification('Preencha todos os campos obrigatórios', 'error');
-            return;
-        }
-
-        try {
-            // ✅ CORRIGIDO: Usar sistema de histórico em vez de alterar diretamente
-            const numericValue = parseFloat(newValorPago.replace(',', '.'));
-            
-            if (isNaN(numericValue) || numericValue <= 0) {
-                showNotification('Valor inválido', 'error');
-                return;
-            }
-
-            // 1. ADICIONAR ao histórico
-            const { error: insertError } = await supabase
-                .from('pagamentos_históricos')
-                .insert({
-                    inscricao_id: currentParticipant.id,
-                    valor_pago: numericValue,
-                    forma_pagamento: newFormaPagamento,
-                    atendente: currentUser.email.split('@')[0],
-                    observacoes: `Atualização via Status Modal em ${formatDateTime(new Date())}`,
-                    criado_em: new Date().toISOString(),
-                    pagamento_de_dados: new Date().toISOString()
-                });
-
-            if (insertError) throw insertError;
-
-            // 2. SINCRONIZAR com tabela principal
-            await forceSyncInscricaoWithHistory(currentParticipant.id);
-
-            // 3. RECARREGAR dados
-            await loadParticipants();
-            await updateStats();
-            
-            // Fechar modal
-            closeStatusModal();
-            
-            // Gerar recibo se pagamento foi efetuado
-            if (newStatus !== 'PENDENTE') {
-                // Buscar dados atualizados
-                const updatedParticipant = allParticipants.find(p => p.id === currentParticipant.id);
-                if (updatedParticipant) {
-                    generateReceipt(updatedParticipant);
-                }
-            }
-            
-            // Atualizar interface
-            searchParticipants(); // Refresh da busca
-            
-            showNotification('✅ Pagamento adicionado ao histórico com sucesso!', 'success');
-
-        } catch (error) {
-            console.error('Erro ao atualizar status:', error);
-            showNotification('Erro ao adicionar pagamento: ' + error.message, 'error');
-        }
-    }
-
-        // ===== SISTEMA DE RECIBO MELHORADO =====
-        function generateReceipt(participant) {
-            const now = new Date();
-            const receiptData = {
-                participant: participant,
-                datetime: formatDateTime(now),
-                numero: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-            };
-
-            currentReceipt = receiptData;
-
-            const receiptContent = `
-                <div class="receipt-header">
-                    <h2 style="margin: 0; color: #ff6b35;">VISÃO • MISSÃO • PRESSÃO</h2>
-                    <h3 style="margin: 5px 0; color: #333;">O RETIRO 2025</h3>
-                    <p style="margin: 0; font-size: 0.9em;">RECIBO DE PAGAMENTO</p>
-                </div>
-                
-                <div style="margin: 15px 0; text-align: left;">
-                    <p><strong>Data/Hora:</strong> ${receiptData.datetime}</p>
-                    <p><strong>Recibo Nº:</strong> ${receiptData.numero}</p>
-                    <p><strong>Nome:</strong> ${participant.nome_completo}</p>
-                    <p><strong>WhatsApp:</strong> ${participant.whatsapp}</p>
-                    <p><strong>Sexo:</strong> ${participant.sexo}</p>
-                    <p><strong>Idade:</strong> ${participant.idade || 'N/A'}</p>
-                </div>
-                
-                <div style="border-top: 1px dashed #333; border-bottom: 1px dashed #333; padding: 10px 0; margin: 15px 0;">
-                    <p><strong>Valor Pago:</strong> ${formatCurrency(participant.valor_pago)}</p>
-                    <p><strong>Forma:</strong> ${participant.forma_pagamento}</p>
-                    <p><strong>Status:</strong> ${getStatusText(participant.status_pagamento)}</p>
-                    <p><strong>Atendente:</strong> ${participant.atendente}</p>
-                </div>
-                
-                <div class="receipt-footer">
-                <p style="margin: 0; font-size: 0.8em; font-weight: bold; color: ${participant.status_pagamento === 'PAGO' ? '#22c55e' : participant.status_pagamento === 'PAGO PARCIALMENTE' ? '#fbbf24' : '#ef4444'};">
-                    ${participant.status_pagamento === 'PAGO' ? 'PAGAMENTO QUITADO!' : participant.status_pagamento === 'PAGO PARCIALMENTE' ? 'PAGAMENTO PARCIAL REALIZADO!' : 'PAGAMENTO PENDENTE'}
-                </p>
-                <p style="margin: 5px 0 0 0; font-size: 0.8em;">
-                    ${participant.status_pagamento === 'PAGO' ? 'Participação confirmada!' : participant.status_pagamento === 'PAGO PARCIALMENTE' ? 'Pré-inscrição confirmada!' : 'Aguardando pagamento...'}
-                </p>
-                <p style="margin: 5px 0 0 0; font-size: 0.7em;">Parabéns pelo seu posicionamento!</p>
-                <p style="margin: 10px 0 0 0; font-size: 0.7em;">ALVO CHURCH</p>
-            </div>
-            `;
-
-            document.getElementById('receipt-content').innerHTML = receiptContent;
-            document.getElementById('receipt-modal').style.display = 'flex';
-        }
-
-        function closeReceiptModal() {
-            document.getElementById('receipt-modal').style.display = 'none';
-            currentReceipt = null;
-        }
-
-        function printReceipt() {
-            if (!currentReceipt) return;
-            
-            document.getElementById('receipt-print').innerHTML = document.getElementById('receipt-content').innerHTML;
-            window.print();
-        }
-
-        function emailReceiptFromModal() {
-            if (!currentReceipt) return;
-            
-            closeReceiptModal();
-            openEmailModal(currentReceipt.participant.id);
-        }
-
-        // ===== MODAL DE DETALHES MELHORADO =====
-        async function showParticipantDetails(participantId) {
-            const participant = allParticipants.find(p => p.id == participantId);
-            if (!participant) return;
-
-            const showDeleteButton = currentUser && currentUser.email === 'adm@alvo.com';
-
-            const content = `
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">👤 Informações Pessoais</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Nome:</label>
-                            <input type="text" id="edit-name" class="input" value="${participant.nome_completo || ''}" 
-                                   onblur="updateParticipantName('${participantId}', this.value)">
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">WhatsApp:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.whatsapp || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">E-mail:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.email || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Sexo:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.sexo || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Idade:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.idade || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cidade:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cidade || 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">🎯 Informações do Retiro</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Função no Retiro:</label>
-                            <select id="edit-funcao" class="input" onchange="updateParticipantFunction('${participantId}', this.value)">
-                                <option value="TRABALHO" ${participant.vai_servir_receber === 'TRABALHO' ? 'selected' : ''}>TRABALHO</option>
-                                <option value="ENCONTRISTA" ${participant.vai_servir_receber === 'ENCONTRISTA' ? 'selected' : ''}>ENCONTRISTA</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cor da Rede:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cor_rede || 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">💰 Informações de Pagamento</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Status:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${getStatusText(participant.status_pagamento)}</div>
-                        </div>
-                        <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Valor Pago:</label>
-                        ${showDeleteButton ? 
-                            `<input type="text" id="edit-valor-pago" class="input" value="${participant.valor_pago || ''}" 
-                                onblur="updateParticipantValuePaid('${participantId}', this.value)" 
-                                placeholder="Ex: 150,00" style="background: #333; border: 2px solid #ff6b35;">` :
-                            `<div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.valor_pago || 'N/A'}</div>`
-                        }
-                    </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Forma de Pagamento:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.forma_pagamento || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Atendente:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.atendente || 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">📅 Datas</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Inscrição:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${formatDateTime(convertToLocalTime(participant.data_inscricao))}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Confirmação:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.data_confirmacao_pagamento ? formatDateTime(convertToLocalTime(participant.data_confirmacao_pagamento)) : 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: ${showDeleteButton ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'}; gap: 10px; margin-top: 20px;">
-                    <button onclick="openPaymentsModal('${participantId}')" class="btn btn-success">💰 Gerenciar Pagamentos</button>
-                    <button onclick="generateReceipt(allParticipants.find(p => p.id == '${participantId}'))" class="btn btn-info">🧾 Gerar Recibo</button>
-                    <button onclick="openEmailModal('${participantId}')" class="btn btn-warning">📧 Enviar E-mail</button>
-                    ${showDeleteButton ? `<button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>` : ''}
-                </div>
-            `;
-
-            document.getElementById('details-content').innerHTML = content;
-            document.getElementById('details-modal').style.display = 'flex';
-        }
-
-        function closeDetailsModal() {
-            document.getElementById('details-modal').style.display = 'none';
-        }
-
-        async function updateParticipantName(participantId, newName) {
-            if (!newName.trim()) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('inscricoes')
-                    .update({ nome_completo: newName.trim().toUpperCase() })
-                    .eq('id', participantId);
-
-                if (error) throw error;
-
-                // Atualizar dados locais
-                const participant = allParticipants.find(p => p.id == participantId);
-                if (participant) {
-                    participant.nome_completo = newName.trim().toUpperCase();
-                }
-
-                showNotification('Nome atualizado com sucesso!', 'success');
-                searchParticipants(); // Refresh da busca
-
-            } catch (error) {
-                console.error('Erro ao atualizar nome:', error);
-                showNotification('Erro ao atualizar nome: ' + error.message, 'error');
-            }
-        }
-
-        async function updateParticipantFunction(participantId, newFunction) {
-        if (!newFunction.trim()) return;
-        
-        try {
-            const { error } = await supabase
-                .from('inscricoes')
-                .update({ 
-                    vai_servir_receber: newFunction.trim().toUpperCase(),
-                    data_ultima_atualizacao: new Date().toISOString()
-                })
-                .eq('id', participantId);
-
-            if (error) throw error;
-
-            // Atualizar dados locais
-            const participant = allParticipants.find(p => p.id == participantId);
-            if (participant) {
-                participant.vai_servir_receber = newFunction.trim().toUpperCase();
-            }
-
-            showNotification('Função atualizada com sucesso!', 'success');
-            searchParticipants(); // Refresh da busca
-
-        } catch (error) {
-            console.error('Erro ao atualizar função:', error);
-            showNotification('Erro ao atualizar função: ' + error.message, 'error');
-        }
-    }
-
-        async function deleteParticipant(participantId) {
-            if (!confirm('Tem certeza que deseja excluir esta inscrição? Esta ação não pode ser desfeita.')) {
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('inscricoes')
-                    .update({ status: 'CANCELADO' })
-                    .eq('id', participantId);
-
-                if (error) throw error;
-
-                // Atualizar dados locais
-                allParticipants = allParticipants.filter(p => p.id != participantId);
-
-                closeDetailsModal();
-                await updateStats();
-                searchParticipants(); // Refresh da busca
-                
-                showNotification('Inscrição cancelada com sucesso!', 'success');
-
-            } catch (error) {
-                console.error('Erro ao cancelar participante:', error);
-                showNotification('Erro ao cancelar inscrição: ' + error.message, 'error');
-            }
-        }
-
-        // ===== SISTEMA DE E-MAIL MELHORADO =====
-        function openEmailModal(participantId) {
-            const participant = allParticipants.find(p => p.id == participantId);
-            if (!participant) return;
-
-            document.getElementById('email-participant-name').textContent = participant.nome_completo;
-            document.getElementById('email-input').value = participant.email || '';
-            
-            const summary = `
-                Nome: ${participant.nome_completo}
-                WhatsApp: ${participant.whatsapp}
-                Status: ${getStatusText(participant.status_pagamento)}
-                Valor Pago: ${participant.valor_pago || 'N/A'}
-                Forma Pagamento: ${participant.forma_pagamento || 'N/A'}
-                Data Inscrição: ${new Date(participant.data_inscricao).toLocaleDateString('pt-BR')}
-            `;
-            
-            document.getElementById('email-payment-summary').textContent = summary;
-            document.getElementById('email-modal').style.display = 'flex';
-            
-            // Armazenar participante atual para envio
-            currentParticipant = participant;
-        }
-
-        function closeEmailModal() {
-            document.getElementById('email-modal').style.display = 'none';
-            currentParticipant = null;
-        }
-
-      // ===== FUNÇÃO CORRIGIDA PARA ENVIO VIA RESEND =====
-
-        async function sendEmailReceipt() {
-            const email = document.getElementById('email-input').value;
-            
-            if (!email || !validateEmail(email) || !currentParticipant) {
-                showNotification('Dados inválidos para envio', 'error');
-                return;
-            }
-
-            try {
-                // ✅ USAR MAILTO com o e-mail da ALVO
-                const subject = encodeURIComponent(`Comprovante - O Retiro 2025 - ${currentParticipant.nome_completo}`);
-                const body = encodeURIComponent(`Olá ${currentParticipant.nome_completo}!
-
-        Segue seu comprovante de inscrição para O Retiro 2025:
-
-        📋 DADOS PESSOAIS:
-        Nome: ${currentParticipant.nome_completo}
-        WhatsApp: ${currentParticipant.whatsapp}
-        E-mail: ${currentParticipant.email || email}
-        Sexo: ${currentParticipant.sexo}
-        Idade: ${currentParticipant.idade || 'N/A'}
-        Cidade: ${currentParticipant.cidade || 'N/A'}
-
-        🎯 INFORMAÇÕES DO RETIRO:
-        Função: ${currentParticipant.vai_servir_receber || 'N/A'}
-        Cor da Rede: ${currentParticipant.cor_rede || 'N/A'}
-
-        💰 PAGAMENTO:
-        Status: ${getStatusText(currentParticipant.status_pagamento)}
-        Valor Pago: R$ ${currentParticipant.valor_pago || 'N/A'}
-        Forma de Pagamento: ${currentParticipant.forma_pagamento || 'N/A'}
-        Data da Inscrição: ${new Date(currentParticipant.data_inscricao).toLocaleDateString('pt-BR')}
-        ${currentParticipant.data_confirmacao_pagamento ? 'Data de Confirmação: ' + new Date(currentParticipant.data_confirmacao_pagamento).toLocaleDateString('pt-BR') : ''}
-
-        ✅ INSCRIÇÃO CONFIRMADA!
-        Sua participação está garantida!
-        Parabéns pelo seu posicionamento!
-
-        🏕️ VISÃO • MISSÃO • PRESSÃO
-        O Retiro 2025
-
-        ---
-        ALVO CHURCH
-        Sistema de Balcão - Gerado automaticamente em ${formatDateTime(new Date())}
-        Atendente: ${currentParticipant.atendente || 'Sistema'}
-
-        Para dúvidas, entre em contato:
-        WhatsApp: (41) 99999-9999
-        E-mail: oalvocuritiba@gmail.com`);
-                
-                // ✅ CONSTRUIR LINK MAILTO
-                const mailtoLink = `mailto:${email}?cc=oalvocuritiba@gmail.com&subject=${subject}&body=${body}`;
-                
-                // ✅ ABRIR CLIENTE DE E-MAIL
-                window.open(mailtoLink);
-                
-                // ✅ REGISTRAR NO BANCO QUE FOI ENVIADO
-                try {
-                    await supabase
-                        .from('inscricoes')
-                        .update({ 
-                            ultimo_email_enviado: new Date().toISOString(),
-                            email_atualizado: email
-                        })
-                        .eq('id', currentParticipant.id);
-                } catch (dbError) {
-                    console.warn('Aviso: Não foi possível registrar envio no banco:', dbError);
-                }
-                
-                showNotification('Cliente de e-mail aberto! Complete o envio manualmente.', 'success');
-                closeEmailModal();
-
-            } catch (error) {
-                console.error('Erro ao preparar e-mail:', error);
-                showNotification('Erro ao preparar e-mail: ' + error.message, 'error');
-            }
         }
 
         // ===== SISTEMA DE ESTATÍSTICAS MELHORADO =====
@@ -2113,7 +1504,7 @@ async function syncInscricaoWithHistory(participantId) {
             document.getElementById('dashboard-container').style.display = 'none';
         }
 
-function updateDashboard() {
+async function updateDashboard() {
 
   // ✅ DEBUG: Verificar dados antes dos filtros
     console.log('🔍 AUDIT TOTAL:', allParticipants.length);
@@ -2196,10 +1587,10 @@ function updateDashboard() {
     ).length;
     
     // Calcular valores por forma de pagamento
-    const pixData = calcularPorFormaPagamento(filteredParticipants, 'PIX');
-    const dinheiroData = calcularPorFormaPagamento(filteredParticipants, 'DINHEIRO');
-    const creditoData = calcularPorFormaPagamento(filteredParticipants, 'CT-CRÉDITO');
-    const debitoData = calcularPorFormaPagamento(filteredParticipants, 'CT-DÉBITO');
+        const pixData = await calcularPorFormaPagamento('PIX');
+        const dinheiroData = await calcularPorFormaPagamento('DINHEIRO'); 
+        const creditoData = await calcularPorFormaPagamento('CARTÃO DE CRÉDITO');
+        const debitoData = await calcularPorFormaPagamento('CARTÃO DE DÉBITO');
 
     // ✅ CORRIGIDO: Somar cartões corretamente
     const totalCartaoQtd = creditoData.qtd + debitoData.qtd;
@@ -2230,13 +1621,6 @@ console.log('💰 Total calculado:', totalArrecadado, 'de', filteredParticipants
         <div style="font-size: 0.9em;">R$ ${dinheiroData.valor.toFixed(2).replace('.', ',')}</div>
     `;
     
-    // ✅ DEBUG ANTES DE ATUALIZAR INTERFACE
-    console.log('🔧 ANTES DE ATUALIZAR CARDS:');
-    console.log('creditoData:', creditoData);
-    console.log('debitoData:', debitoData);
-    console.log('Elemento cartao:', document.getElementById('dash-valor-cartao'));
-    console.log('Elemento debito:', document.getElementById('dash-valor-debito'));
-
     // ✅ CARTÃO DE CRÉDITO separado
     document.getElementById('dash-valor-cartao').innerHTML = `
         <div style="font-size: 1.8em; font-weight: bold;">${creditoData.qtd}</div>
@@ -2248,14 +1632,6 @@ console.log('💰 Total calculado:', totalArrecadado, 'de', filteredParticipants
         <div style="font-size: 1.8em; font-weight: bold;">${debitoData.qtd}</div>
         <div style="font-size: 0.9em;">R$ ${debitoData.valor.toFixed(2).replace('.', ',')}</div>
     `;
-
-    // ✅ DEBUG: Verificar se os elementos existem
-    console.log('🎯 Elementos encontrados:', {
-        cartao: document.getElementById('dash-valor-cartao'),
-        debito: document.getElementById('dash-valor-debito'),
-        creditoData,
-        debitoData
-    });
 
     // Atualizar tabela
     updateInscricoesTable(filteredParticipants);
@@ -2274,75 +1650,138 @@ if (totalElement) {
 }
     
     console.log('📊 Dashboard atualizado:', { totalInscricoes, preInscricoes, pagosCompleto, totalArrecadado });
-}
 
-function calcularPorFormaPagamento(participants, forma) {
-    // Para MÚLTIPLAS FORMAS, precisamos consultar o histórico
-    if (forma === 'MÚLTIPLAS FORMAS') {
-        const multipleFormsParticipants = participants.filter(p => p.forma_pagamento === 'MÚLTIPLAS FORMAS');
-        return { qtd: multipleFormsParticipants.length, valor: 0 }; // Valor será calculado no histórico
+}
+async function calcularPorFormaPagamento(forma) {
+    try {
+        // Obter data do filtro ou hoje
+        const filterData = document.getElementById('filter-data').value;
+        const dataFiltro = filterData || new Date().toISOString().split('T')[0];
+        
+        console.log('🔍 DEBUG - Forma:', forma, 'Data:', dataFiltro);
+        
+        // Buscar pagamentos do dia na tabela histórico
+        const { data: pagamentosDia, error } = await supabase
+            .from('pagamentos_históricos')
+            .select('*')
+            .eq('forma_pagamento', forma)
+            .gte('data_pagamento', dataFiltro + 'T00:00:00')
+            .lt('data_pagamento', dataFiltro + 'T23:59:59');
+            
+        console.log('🔍 DEBUG - Pagamentos encontrados:', pagamentosDia);
+            
+        if (error) {
+            console.error('Erro ao buscar pagamentos:', error);
+            return { qtd: 0, valor: 0 };
+        }
+        
+        const qtd = pagamentosDia ? pagamentosDia.length : 0;
+        const valor = pagamentosDia ? pagamentosDia.reduce((total, p) => {
+            const val = parseFloat(p.valor_pago);
+            return total + (isNaN(val) ? 0 : val);
+        }, 0) : 0;
+        
+        console.log(`💳 ${forma} do dia:`, { qtd, valor });
+        return { qtd, valor };
+        
+    } catch (error) {
+        console.error('Erro ao calcular por forma:', error);
+        return { qtd: 0, valor: 0 };
     }
-    
-    // ✅ USAR OS NOMES EXATOS DO BANCO
-    const filtered = participants.filter(p => 
-        p.forma_pagamento === forma && 
-        p.valor_pago && 
-        (p.status_pagamento === 'PAGO' || p.status_pagamento === 'PAGO PARCIALMENTE')
-    );
-    
-    const qtd = filtered.length;
-    const valor = filtered.reduce((total, p) => 
-        total + parseFloat(p.valor_pago.replace(',', '.')), 0
-    );
-    
-    console.log(`💳 Debug ${forma}:`, { qtd, valor, filtered: filtered.map(p => p.nome_completo) });
-    
-    return { qtd, valor };
 }
 
-function updateInscricoesTable(participants) {
+async function calcularValorDoDiaPorPessoa(inscricaoId, dataFiltro) {
+    try {
+        const { data: pagamentosDia, error } = await supabase
+            .from('pagamentos_históricos')
+            .select('valor_pago, data_pagamento')
+            .eq('inscricao_id', inscricaoId)
+            .gte('data_pagamento', dataFiltro + 'T00:00:00')
+            .lt('data_pagamento', dataFiltro + 'T23:59:59');
+        
+        console.log(`💰 Debug pessoa ${inscricaoId}:`, pagamentosDia);
+
+        if (error || !pagamentosDia) {
+            console.log('Erro ou sem dados:', error);
+            return 0;
+        }
+
+        const totalDia = pagamentosDia.reduce((total, p) => {
+            const val = parseFloat(p.valor_pago);
+            return total + (isNaN(val) ? 0 : val);
+        }, 0);
+
+        console.log(`💰 Total do dia pessoa ${inscricaoId}:`, totalDia);
+        return totalDia;
+        
+    } catch (error) {
+        console.error('Erro ao calcular valor do dia:', error);
+        return 0;
+    }
+}
+
+async function updateInscricoesTable(participants) {
     const tbody = document.getElementById('inscricoes-tbody');
-    
+
     if (!tbody) {
         console.error('❌ Elemento inscricoes-tbody não encontrado');
         return;
     }
-    
+
     console.log('📋 Atualizando tabela com', participants.length, 'participantes');
-    
+
     if (participants.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;">Nenhum resultado encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">Nenhum resultado encontrado</td></tr>';
         return;
     }
-    
+
     try {
-        tbody.innerHTML = participants.map(p => {
+        const filterData = document.getElementById('filter-data').value;
+        const dataFiltro = filterData || new Date().toISOString().split('T')[0];
+
+        const linhas = await Promise.all(participants.map(async (p) => {
             const dataInscricao = p.data_inscricao ? formatDateTime(convertToLocalTime(p.data_inscricao)) : 'N/A';
+
+            let valorDoDia = 0;
+            try {
+                valorDoDia = await calcularValorDoDiaPorPessoa(p.id, dataFiltro);
+            } catch (erroInterno) {
+                console.error(`Erro interno ao buscar valor do dia para ${p.id}`, erroInterno);
+            }
+
+            const valorFormatado = valorDoDia > 0
+                ? `R$ ${valorDoDia.toFixed(2).replace('.', ',')}`
+                : '-';
+
             return `
                 <tr onclick="showParticipantDetails('${p.id}')" style="cursor: pointer; border-bottom: 1px solid #333;">
                     <td style="padding: 10px;">${p.nome_completo || 'N/A'}</td>
                     <td style="padding: 10px;">${p.whatsapp || 'N/A'}</td>
                     <td style="padding: 10px;">${p.sexo || 'N/A'}</td>
                     <td style="padding: 10px;">
-                        <span class="btn btn-${getStatusClass(p.status_pagamento)}" 
-                              style="padding: 4px 8px; font-size: 0.8em; border-radius: 4px;">
+                        <span class="btn btn-${getStatusClass(p.status_pagamento)}"
+                            style="padding: 4px 8px; font-size: 0.8em; border-radius: 4px;">
                             ${getStatusText(p.status_pagamento)}
                         </span>
                     </td>
                     <td style="padding: 10px;">${p.forma_pagamento || 'N/A'}</td>
+                    <td style="padding: 10px; text-align: center;">
+                        <strong style="color: ${valorDoDia > 0 ? '#22c55e' : '#666'};">${valorFormatado}</strong>
+                    </td>
                     <td style="padding: 10px;">${p.atendente || 'N/A'}</td>
                     <td style="padding: 10px;">${dataInscricao}</td>
                 </tr>
             `;
-        }).join('');
-        
-        console.log('✅ Tabela atualizada com sucesso');
+        }));
+
+        tbody.innerHTML = linhas.join('');
+        console.log('✅ Tabela atualizada com valores reais do dia');
+
     } catch (error) {
         console.error('❌ Erro ao atualizar tabela:', error);
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #ff6666;">Erro ao carregar dados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ff6666;">Erro ao carregar dados</td></tr>';
     }
 }
-
         // ===== LISTA DE GANHADORES MELHORADA =====
         async function generateWinnersList() {
             try {
@@ -2563,6 +2002,365 @@ function updateInscricoesTable(participants) {
         function exportInscricoes() {
             exportToExcel();
         }
+        // ===== MODAL DE DETALHES MELHORADO =====
+        async function showParticipantDetails(participantId) {
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (!participant) return;
+
+            const showDeleteButton = currentUser && currentUser.email === 'adm@alvo.com';
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">👤 Informações Pessoais</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Nome:</label>
+                            <input type="text" id="edit-name" class="input" value="${participant.nome_completo || ''}" 
+                                   onblur="updateParticipantName('${participantId}', this.value)">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">WhatsApp:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.whatsapp || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">E-mail:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.email || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Sexo:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.sexo || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Idade:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.idade || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cidade:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cidade || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">🎯 Informações do Retiro</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Função no Retiro:</label>
+                            <select id="edit-funcao" class="input" onchange="updateParticipantFunction('${participantId}', this.value)">
+                                <option value="TRABALHO" ${participant.vai_servir_receber === 'TRABALHO' ? 'selected' : ''}>TRABALHO</option>
+                                <option value="ENCONTRISTA" ${participant.vai_servir_receber === 'ENCONTRISTA' ? 'selected' : ''}>ENCONTRISTA</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cor da Rede:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cor_rede || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">💰 Informações de Pagamento</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Status:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${getStatusText(participant.status_pagamento)}</div>
+                        </div>
+                        <div>
+                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Valor Pago:</label>
+                        ${showDeleteButton ? 
+                            `<input type="text" id="edit-valor-pago" class="input" value="${participant.valor_pago || ''}" 
+                                onblur="updateParticipantValuePaid('${participantId}', this.value)" 
+                                placeholder="Ex: 150,00" style="background: #333; border: 2px solid #ff6b35;">` :
+                            `<div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.valor_pago || 'N/A'}</div>`
+                        }
+                    </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Forma de Pagamento:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.forma_pagamento || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Atendente:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.atendente || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;">📅 Datas</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Inscrição:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${formatDateTime(convertToLocalTime(participant.data_inscricao))}</div>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Confirmação:</label>
+                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.data_confirmacao_pagamento ? formatDateTime(convertToLocalTime(participant.data_confirmacao_pagamento)) : 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: ${showDeleteButton ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'}; gap: 10px; margin-top: 20px;">
+                    <button onclick="openPaymentsModal('${participantId}')" class="btn btn-success">💰 Gerenciar Pagamentos</button>
+                    <button onclick="generateReceipt(${participantId})" class="btn btn-info">🧾 Gerar Recibo</button>
+                    <button onclick="openEmailModal('${participantId}')" class="btn btn-warning">📧 Enviar E-mail</button>
+                    ${showDeleteButton ? `<button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>` : ''}
+                </div>
+            `;
+
+            document.getElementById('details-content').innerHTML = content;
+            document.getElementById('details-modal').style.display = 'flex';
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('details-modal').style.display = 'none';
+        }
+
+        async function updateParticipantName(participantId, newName) {
+            if (!newName.trim()) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('inscricoes')
+                    .update({ nome_completo: newName.trim().toUpperCase() })
+                    .eq('id', participantId);
+
+                if (error) throw error;
+
+                // Atualizar dados locais
+                const participant = allParticipants.find(p => p.id == participantId);
+                if (participant) {
+                    participant.nome_completo = newName.trim().toUpperCase();
+                }
+
+                showNotification('Nome atualizado com sucesso!', 'success');
+                searchParticipants(); // Refresh da busca
+
+            } catch (error) {
+                console.error('Erro ao atualizar nome:', error);
+                showNotification('Erro ao atualizar nome: ' + error.message, 'error');
+            }
+        }
+
+        async function updateParticipantFunction(participantId, newFunction) {
+        if (!newFunction.trim()) return;
+        
+        try {
+            const { error } = await supabase
+                .from('inscricoes')
+                .update({ 
+                    vai_servir_receber: newFunction.trim().toUpperCase(),
+                    data_ultima_atualizacao: new Date().toISOString()
+                })
+                .eq('id', participantId);
+
+            if (error) throw error;
+
+            // Atualizar dados locais
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (participant) {
+                participant.vai_servir_receber = newFunction.trim().toUpperCase();
+            }
+
+            showNotification('Função atualizada com sucesso!', 'success');
+            searchParticipants(); // Refresh da busca
+
+        } catch (error) {
+            console.error('Erro ao atualizar função:', error);
+            showNotification('Erro ao atualizar função: ' + error.message, 'error');
+        }
+    }
+
+        async function deleteParticipant(participantId) {
+            if (!confirm('Tem certeza que deseja excluir esta inscrição? Esta ação não pode ser desfeita.')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('inscricoes')
+                    .update({ status: 'CANCELADO' })
+                    .eq('id', participantId);
+
+                if (error) throw error;
+
+                // Atualizar dados locais
+                allParticipants = allParticipants.filter(p => p.id != participantId);
+
+                closeDetailsModal();
+                await updateStats();
+                searchParticipants(); // Refresh da busca
+                
+                showNotification('Inscrição cancelada com sucesso!', 'success');
+
+            } catch (error) {
+                console.error('Erro ao cancelar participante:', error);
+                showNotification('Erro ao cancelar inscrição: ' + error.message, 'error');
+            }
+        }
+
+        // ===== SISTEMA DE E-MAIL MELHORADO =====
+        function openEmailModal(participantId) {
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (!participant) return;
+
+            document.getElementById('email-participant-name').textContent = participant.nome_completo;
+            document.getElementById('email-input').value = participant.email || '';
+            
+            const summary = `
+                Nome: ${participant.nome_completo}
+                WhatsApp: ${participant.whatsapp}
+                Status: ${getStatusText(participant.status_pagamento)}
+                Valor Pago: ${participant.valor_pago || 'N/A'}
+                Forma Pagamento: ${participant.forma_pagamento || 'N/A'}
+                Data Inscrição: ${new Date(participant.data_inscricao).toLocaleDateString('pt-BR')}
+            `;
+            
+            document.getElementById('email-payment-summary').textContent = summary;
+            document.getElementById('email-modal').style.display = 'flex';
+            
+            // Armazenar participante atual para envio
+            currentParticipant = participant;
+        }
+
+        function closeEmailModal() {
+            document.getElementById('email-modal').style.display = 'none';
+            currentParticipant = null;
+        }
+
+        async function sendEmailReceipt() {
+            const email = document.getElementById('email-input').value;
+            
+            if (!email || !validateEmail(email) || !currentParticipant) {
+                showNotification('Dados inválidos para envio', 'error');
+                return;
+            }
+
+            try {
+                // ✅ USAR MAILTO com o e-mail da ALVO
+                const subject = encodeURIComponent(`Comprovante - O Retiro 2025 - ${currentParticipant.nome_completo}`);
+                const body = encodeURIComponent(`Olá ${currentParticipant.nome_completo}!
+
+        Segue seu comprovante de inscrição para O Retiro 2025:
+
+        📋 DADOS PESSOAIS:
+        Nome: ${currentParticipant.nome_completo}
+        WhatsApp: ${currentParticipant.whatsapp}
+        E-mail: ${currentParticipant.email || email}
+        Sexo: ${currentParticipant.sexo}
+        Idade: ${currentParticipant.idade || 'N/A'}
+        Cidade: ${currentParticipant.cidade || 'N/A'}
+
+        🎯 INFORMAÇÕES DO RETIRO:
+        Função: ${currentParticipant.vai_servir_receber || 'N/A'}
+        Cor da Rede: ${currentParticipant.cor_rede || 'N/A'}
+
+        💰 PAGAMENTO:
+        Status: ${getStatusText(currentParticipant.status_pagamento)}
+        Valor Pago: R$ ${currentParticipant.valor_pago || 'N/A'}
+        Forma de Pagamento: ${currentParticipant.forma_pagamento || 'N/A'}
+        Data da Inscrição: ${new Date(currentParticipant.data_inscricao).toLocaleDateString('pt-BR')}
+        ${currentParticipant.data_confirmacao_pagamento ? 'Data de Confirmação: ' + new Date(currentParticipant.data_confirmacao_pagamento).toLocaleDateString('pt-BR') : ''}
+
+        ✅ INSCRIÇÃO CONFIRMADA!
+        Sua participação está garantida!
+        Parabéns pelo seu posicionamento!
+
+        🏕️ VISÃO • MISSÃO • PRESSÃO
+        O Retiro 2025
+
+        ---
+        ALVO CHURCH
+        Sistema de Balcão - Gerado automaticamente em ${formatDateTime(new Date())}
+        Atendente: ${currentParticipant.atendente || 'Sistema'}
+
+        Para dúvidas, entre em contato:
+        WhatsApp: (41) 99999-9999
+        E-mail: oalvocuritiba@gmail.com`);
+                
+                // ✅ CONSTRUIR LINK MAILTO
+                const mailtoLink = `mailto:${email}?cc=oalvocuritiba@gmail.com&subject=${subject}&body=${body}`;
+                
+                // ✅ ABRIR CLIENTE DE E-MAIL
+                window.open(mailtoLink);
+                
+                // ✅ REGISTRAR NO BANCO QUE FOI ENVIADO
+                try {
+                    await supabase
+                        .from('inscricoes')
+                        .update({ 
+                            ultimo_email_enviado: new Date().toISOString(),
+                            email_atualizado: email
+                        })
+                        .eq('id', currentParticipant.id);
+                } catch (dbError) {
+                    console.warn('Aviso: Não foi possível registrar envio no banco:', dbError);
+                }
+                
+                showNotification('Cliente de e-mail aberto! Complete o envio manualmente.', 'success');
+                closeEmailModal();
+
+            } catch (error) {
+                console.error('Erro ao preparar e-mail:', error);
+                showNotification('Erro ao preparar e-mail: ' + error.message, 'error');
+            }
+        }
+
+        // ===== SISTEMA DE RECIBOS MELHORADO =====
+        async function generateReceipt(participantId) {
+            const participant = allParticipants.find(p => p.id === participantId);
+            if (!participant) return;
+
+            // Buscar último pagamento
+            const { data, error } = await supabase
+                .from('pagamentos_históricos')
+                .select('*')
+                .eq('inscricao_id', participantId)
+                .order('data_pagamento', { ascending: false })
+                .limit(1);
+
+            if (error) {
+                console.error('Erro ao buscar último pagamento:', error);
+                return;
+            }
+
+            const ultimoPagamento = data[0];
+
+            const receiptContent = `
+                <p><strong>Nome:</strong> ${participant.nome_completo}</p>
+                <p><strong>WhatsApp:</strong> ${participant.whatsapp}</p>
+                <p><strong>Valor Pago:</strong> R$ ${ultimoPagamento?.valor_pago || '---'}</p>
+                <p><strong>Forma de Pagamento:</strong> ${ultimoPagamento?.forma_pagamento || '---'}</p>
+                <p><strong>Data:</strong> ${ultimoPagamento?.data_pagamento ? new Date(ultimoPagamento.data_pagamento).toLocaleString() : '---'}</p>
+                <p><strong>Atendente:</strong> ${ultimoPagamento?.atendente || '---'}</p>
+            `;
+
+            const receiptArea = document.getElementById('receipt-area');
+            document.getElementById('receipt-content').innerHTML = receiptContent;
+            receiptArea.style.display = 'block';
+            window.scrollTo({ top: receiptArea.offsetTop - 40, behavior: 'smooth' });
+        }
+
+
+        window.generateReceipt = generateReceipt;
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').style.display = 'none';
+            currentReceipt = null;
+        }
+
+        function printReceipt() {
+            if (!currentReceipt) return;
+            
+            document.getElementById('receipt-print').innerHTML = document.getElementById('receipt-content').innerHTML;
+            window.print();
+        }
+
+        function emailReceiptFromModal() {
+            if (!currentReceipt) return;
+            
+            closeReceiptModal();
+            openEmailModal(currentReceipt.participant.id);
+        }
 
         // ===== SISTEMA DE NOTIFICAÇÕES MELHORADO =====
         function showNotification(message, type = 'success') {
@@ -2593,10 +2391,122 @@ function updateInscricoesTable(participants) {
             }
         });
 
+        // ===== FUNÇÃO DE EDIÇÃO DE VALOR (ADM) =====
+        window.updateParticipantValuePaid = async function(participantId, newValue) {
+            if (!newValue.trim()) return;
+            
+            const numericValue = parseFloat(newValue.replace(',', '.'));
+            if (isNaN(numericValue) || numericValue < 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!confirm(`Corrigir valor para R$ ${numericValue.toFixed(2).replace('.', ',')}?`)) {
+                return;
+            }
+            
+            try {
+                console.log('🔄 Iniciando correção para participante:', participantId);
+                
+                // Buscar dados atuais para preservar forma de pagamento
+                const { data: currentData, error: fetchCurrentError } = await supabase
+                    .from('inscricoes')
+                    .select('valor_pago, forma_pagamento, observacoes')
+                    .eq('id', participantId)
+                    .single();
+                    
+                if (fetchCurrentError) {
+                    console.error('❌ Erro ao buscar dados atuais:', fetchCurrentError);
+                    throw fetchCurrentError;
+                }
+                
+                const valorAnterior = currentData.valor_pago || 'N/A';
+                const observacaoAjuste = `Valor ajustado de R$ ${valorAnterior} para R$ ${numericValue.toFixed(2).replace('.', ',')} em ${new Date().toLocaleString('pt-BR')} por adm`;
+                const observacoesAtualizadas = currentData.observacoes ? 
+                    `${currentData.observacoes} | ${observacaoAjuste}` : 
+                    observacaoAjuste;
+                
+                const { error: updateError } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        valor_pago: numericValue.toFixed(2).replace('.', ','),
+                        observacoes: observacoesAtualizadas,
+                        data_ultima_atualizacao: new Date().toISOString(),
+                        atendente: 'adm'
+                    })
+                    .eq('id', participantId);
+                    
+                if (updateError) {
+                    console.error('❌ Erro no update direto:', updateError);
+                    throw updateError;
+                }
+                
+                console.log('✅ Valor atualizado na tabela principal');
+                
+                // Atualizar último pagamento no histórico se existir
+                const { data: payments, error: fetchError } = await supabase
+                    .from('pagamentos_históricos')
+                    .select('*')
+                    .eq('inscricao_id', participantId)
+                    .order('criado_em', { ascending: false })
+                    .limit(1);
+                    
+                if (fetchError) {
+                    console.warn('⚠️ Aviso: Não foi possível buscar histórico:', fetchError);
+                } else if (payments && payments.length > 0) {
+                    const ultimoPagamento = payments[0];
+                    const { error: historyError } = await supabase
+                        .from('pagamentos_históricos')
+                        .update({
+                            valor_pago: numericValue,
+                            observacoes: `Valor ajustado de R$ ${ultimoPagamento.valor_pago} para R$ ${numericValue} em ${new Date().toLocaleString('pt-BR')} por adm`
+                        })
+                        .eq('id', payments[0].id);
+                        
+                    if (historyError) {
+                        console.warn('⚠️ Aviso: Não foi possível atualizar histórico:', historyError);
+                    } else {
+                        console.log('✅ Histórico também atualizado');
+                    }
+                }
+                
+                // Atualizar dados locais
+                const participantIndex = allParticipants.findIndex(p => p.id == participantId);
+                if (participantIndex !== -1) {
+                    allParticipants[participantIndex].valor_pago = numericValue.toFixed(2).replace('.', ',');
+                    allParticipants[participantIndex].observacoes = observacoesAtualizadas;
+                    
+                    // Recalcular status baseado no novo valor
+                    if (numericValue >= 520) {
+                        allParticipants[participantIndex].status_pagamento = 'PAGO';
+                    } else if (numericValue >= 150) {
+                        allParticipants[participantIndex].status_pagamento = 'PAGO PARCIALMENTE';
+                    } else {
+                        allParticipants[participantIndex].status_pagamento = 'PENDENTE';
+                    }
+                }
+                
+                // Atualizar interface
+                await updateStats();
+                searchParticipants();
+                
+                // Se dashboard estiver aberto, atualizar também
+                if (document.getElementById('dashboard-container').style.display !== 'none') {
+                    updateDashboard();
+                }
+                
+                alert('✅ Valor corrigido com sucesso! (Forma de pagamento preservada)');
+                console.log('🎉 Correção finalizada - valor ajustado, forma de pagamento mantida');
+                
+            } catch (error) {
+                console.error('❌ Erro completo:', error);
+                alert('❌ Erro: ' + error.message);
+            }
+        };
         
         // ===== INICIALIZAÇÃO DO SISTEMA =====
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('Sistema de Balcão v3.1.0 - O Retiro 2025 - Carregado e Configurado');
+            console.log('Sistema de Balcão v3.2.0 - O Retiro 2025 - Carregado e Configurado');
             
             // Verificar se já está logado
             supabase.auth.getSession().then(({ data: { session } }) => {
@@ -2620,254 +2530,6 @@ function updateInscricoesTable(participants) {
             });
         });
 
-                // ===== FUNÇÃO DE EDIÇÃO DE VALOR (ADM) =====
-       // ===== FUNÇÃO CORRIGIDA PARA EDIÇÃO DE VALOR (ADM) =====
-window.updateParticipantValuePaid = async function(participantId, newValue) {
-    if (!newValue.trim()) return;
-    
-    const numericValue = parseFloat(newValue.replace(',', '.'));
-    if (isNaN(numericValue) || numericValue < 0) {
-        alert('Valor inválido!');
-        return;
-    }
-    
-    if (!confirm(`Corrigir valor para R$ ${numericValue.toFixed(2).replace('.', ',')}?`)) {
-        return;
-    }
-    
-    try {
-        console.log('🔄 Iniciando correção para participante:', participantId);
-        
-        // ✅ OPÇÃO 1: ATUALIZAR DIRETAMENTE NA TABELA PRINCIPAL (SEM ALTERAR FORMA DE PAGAMENTO)
-        // Primeiro, buscar dados atuais para preservar forma de pagamento
-        const { data: currentData, error: fetchCurrentError } = await supabase
-            .from('inscricoes')
-            .select('valor_pago, forma_pagamento, observacoes')
-            .eq('id', participantId)
-            .single();
-            
-        if (fetchCurrentError) {
-            console.error('❌ Erro ao buscar dados atuais:', fetchCurrentError);
-            throw fetchCurrentError;
-        }
-        
-        const valorAnterior = currentData.valor_pago || 'N/A';
-        const observacaoAjuste = `Valor ajustado de R$ ${valorAnterior} para R$ ${numericValue.toFixed(2).replace('.', ',')} em ${new Date().toLocaleString('pt-BR')} por adm`;
-        const observacoesAtualizadas = currentData.observacoes ? 
-            `${currentData.observacoes} | ${observacaoAjuste}` : 
-            observacaoAjuste;
-        
-        const { error: updateError } = await supabase
-            .from('inscricoes')
-            .update({
-                valor_pago: numericValue.toFixed(2).replace('.', ','),
-                observacoes: observacoesAtualizadas,
-                data_ultima_atualizacao: new Date().toISOString(),
-                atendente: 'adm'
-                // ✅ NÃO ALTERAR forma_pagamento - mantém a original
-            })
-            .eq('id', participantId);
-            
-        if (updateError) {
-            console.error('❌ Erro no update direto:', updateError);
-            throw updateError;
-        }
-        
-        console.log('✅ Valor atualizado na tabela principal');
-        
-        // ✅ OPÇÃO 2: SE QUISER MANTER HISTÓRICO, BUSCAR E ATUALIZAR ÚLTIMO PAGAMENTO
-        const { data: payments, error: fetchError } = await supabase
-            .from('pagamentos_históricos')
-            .select('*')
-            .eq('inscricao_id', participantId)
-            .order('criado_em', { ascending: false })
-            .limit(1);
-            
-        if (fetchError) {
-            console.warn('⚠️ Aviso: Não foi possível buscar histórico:', fetchError);
-        } else if (payments && payments.length > 0) {
-            // Atualizar último pagamento no histórico (SEM ALTERAR FORMA DE PAGAMENTO)
-            const ultimoPagamento = payments[0];
-            const { error: historyError } = await supabase
-                .from('pagamentos_históricos')
-                .update({
-                    valor_pago: numericValue,
-                    observacoes: `Valor ajustado de R$ ${ultimoPagamento.valor_pago} para R$ ${numericValue} em ${new Date().toLocaleString('pt-BR')} por adm`
-                    // ✅ NÃO ALTERAR forma_pagamento - mantém a original
-                })
-                .eq('id', payments[0].id);
-                
-            if (historyError) {
-                console.warn('⚠️ Aviso: Não foi possível atualizar histórico:', historyError);
-            } else {
-                console.log('✅ Histórico também atualizado');
-            }
-        }
-        
-        // ✅ ATUALIZAR DADOS LOCAIS (PRESERVANDO FORMA DE PAGAMENTO)
-        const participantIndex = allParticipants.findIndex(p => p.id == participantId);
-        if (participantIndex !== -1) {
-            allParticipants[participantIndex].valor_pago = numericValue.toFixed(2).replace('.', ',');
-            allParticipants[participantIndex].observacoes = observacoesAtualizadas;
-            // ✅ NÃO ALTERAR forma_pagamento - mantém a original
-            
-            // Recalcular status baseado no novo valor
-            if (numericValue >= 520) {
-                allParticipants[participantIndex].status_pagamento = 'PAGO';
-            } else if (numericValue >= 150) {
-                allParticipants[participantIndex].status_pagamento = 'PAGO PARCIALMENTE';
-            } else {
-                allParticipants[participantIndex].status_pagamento = 'PENDENTE';
-            }
-        }
-        
-        // ✅ ATUALIZAR INTERFACE
-        await updateStats();
-        searchParticipants(); // Refresh da busca atual
-        
-        // Se dashboard estiver aberto, atualizar também
-        if (document.getElementById('dashboard-container').style.display !== 'none') {
-            updateDashboard();
-        }
-        
-        alert('✅ Valor corrigido com sucesso! (Forma de pagamento preservada)');
-        console.log('🎉 Correção finalizada - valor ajustado, forma de pagamento mantida');
-        
-    } catch (error) {
-        console.error('❌ Erro completo:', error);
-        alert('❌ Erro: ' + error.message);
-    }
-};
-
-        // ===== FUNÇÃO ALTERNATIVA: CORRIGIR ÚLTIMO PAGAMENTO NO HISTÓRICO =====
-        window.correctLastPayment = async function(participantId, newValue) {
-            if (!newValue.trim()) return;
-            
-            const numericValue = parseFloat(newValue.replace(',', '.'));
-            if (isNaN(numericValue) || numericValue < 0) {
-                alert('Valor inválido!');
-                return;
-            }
-            
-            if (!confirm(`Corrigir ÚLTIMO pagamento para R$ ${numericValue.toFixed(2).replace('.', ',')}?`)) {
-                return;
-            }
-            
-            try {
-                console.log('🔄 Buscando último pagamento para correção...');
-                
-                // Buscar último pagamento
-                const { data: payments, error: fetchError } = await supabase
-                    .from('pagamentos_históricos')
-                    .select('*')
-                    .eq('inscricao_id', participantId)
-                    .order('criado_em', { ascending: false })
-                    .limit(1);
-                    
-                if (fetchError) throw fetchError;
-                
-                if (!payments || payments.length === 0) {
-                    // Criar primeiro pagamento se não existir
-                    const { error: insertError } = await supabase
-                        .from('pagamentos_históricos')
-                        .insert({
-                            inscricao_id: parseInt(participantId),
-                            valor_pago: numericValue,
-                            forma_pagamento: 'CORREÇÃO ADMINISTRATIVA',
-                            atendente: 'adm',
-                            observacoes: `Valor inicial inserido via correção em ${new Date().toLocaleString('pt-BR')}`
-                        });
-                        
-                    if (insertError) throw insertError;
-                    console.log('✅ Primeiro pagamento criado');
-                } else {
-                    // Atualizar último pagamento
-                    const ultimoPagamento = payments[0];
-                    const { error: updateError } = await supabase
-                        .from('pagamentos_históricos')
-                        .update({
-                            valor_pago: numericValue,
-                            observacoes: `Valor corrigido de R$ ${ultimoPagamento.valor_pago} para R$ ${numericValue} via ADM em ${new Date().toLocaleString('pt-BR')}`
-                        })
-                        .eq('id', ultimoPagamento.id);
-                        
-                    if (updateError) throw updateError;
-                    console.log('✅ Último pagamento corrigido');
-                }
-                
-                // Forçar sincronização completa
-                await forceSyncInscricaoWithHistory(participantId);
-                await loadParticipants();
-                await updateStats();
-                
-                // Atualizar interface
-                searchParticipants();
-                if (document.getElementById('dashboard-container').style.display !== 'none') {
-                    updateDashboard();
-                }
-                
-                alert('✅ Último pagamento corrigido com sucesso!');
-                
-            } catch (error) {
-                console.error('❌ Erro ao corrigir último pagamento:', error);
-                alert('❌ Erro: ' + error.message);
-            }
-        };
-
-        // ===== FUNÇÃO PARA LIMPAR PAGAMENTOS DUPLICADOS =====
-        window.cleanDuplicatePayments = async function(participantId) {
-            if (!confirm('Limpar pagamentos duplicados? Manterá apenas o último.')) {
-                return;
-            }
-            
-            try {
-                console.log('🧹 Limpando pagamentos duplicados...');
-                
-                // Buscar todos os pagamentos
-                const { data: payments, error: fetchError } = await supabase
-                    .from('pagamentos_históricos')
-                    .select('*')
-                    .eq('inscricao_id', participantId)
-                    .order('criado_em', { ascending: false });
-                    
-                if (fetchError) throw fetchError;
-                
-                if (payments.length <= 1) {
-                    alert('Nenhum pagamento duplicado encontrado.');
-                    return;
-                }
-                
-                // Manter apenas o primeiro (mais recente) e deletar os outros
-                const toDelete = payments.slice(1).map(p => p.id);
-                
-                const { error: deleteError } = await supabase
-                    .from('pagamentos_históricos')
-                    .delete()
-                    .in('id', toDelete);
-                    
-                if (deleteError) throw deleteError;
-                
-                console.log(`🗑️ ${toDelete.length} pagamentos duplicados removidos`);
-                
-                // Sincronizar
-                await forceSyncInscricaoWithHistory(participantId);
-                await loadParticipants();
-                await updateStats();
-                
-                alert(`✅ ${toDelete.length} pagamentos duplicados removidos!`);
-                
-            } catch (error) {
-                console.error('❌ Erro ao limpar duplicados:', error);
-                alert('❌ Erro: ' + error.message);
-            }
-        };
-
-        console.log('✅ Funções de correção atualizadas!');
-        console.log('📋 Funções disponíveis:');
-        console.log('- updateParticipantValuePaid(id, valor) - Corrige valor na tabela principal');
-        console.log('- correctLastPayment(id, valor) - Corrige último pagamento no histórico'); 
-        console.log('- cleanDuplicatePayments(id) - Remove pagamentos duplicados');
-
         // ===== FUNÇÕES GLOBAIS PARA COMPATIBILIDADE =====
         window.logout = logout;
         window.showDashboard = showDashboard;
@@ -2885,10 +2547,6 @@ window.updateParticipantValuePaid = async function(participantId, newValue) {
         window.updateParticipantName = updateParticipantName;
         window.updateParticipantFunction = updateParticipantFunction;
         window.deleteParticipant = deleteParticipant;
-        window.openStatusModal = openStatusModal;
-        window.closeStatusModal = closeStatusModal;
-        window.updateValueBasedOnStatus = updateValueBasedOnStatus;
-        window.updateParticipantStatus = updateParticipantStatus;
         window.generateReceipt = generateReceipt;
         window.closeReceiptModal = closeReceiptModal;
         window.printReceipt = printReceipt;
@@ -2896,14 +2554,16 @@ window.updateParticipantValuePaid = async function(participantId, newValue) {
         window.openEmailModal = openEmailModal;
         window.closeEmailModal = closeEmailModal;
         window.sendEmailReceipt = sendEmailReceipt;
-        window.sendEmailReceipt = sendEmailReceipt;
         window.openPaymentsModal = openPaymentsModal;
         window.closePaymentsModal = closePaymentsModal;
         window.addNewPayment = addNewPayment;
         window.deletePayment = deletePayment;
-        window.updateFinalStatus = updateFinalStatus;
-        window.syncAllParticipantsWithHistory = syncAllParticipantsWithHistory;
-        window.updateParticipantValuePaid = updateParticipantValuePaid;
+        window.forceSyncInscricaoWithHistory = forceSyncInscricaoWithHistory;
+        window.closeReceiptModal = function () {
+            const receiptArea = document.getElementById('receipt-area');
+            receiptArea.style.display = 'none';
+            };
+
 
         // ===== EVENT LISTENERS PARA FILTROS =====
         document.getElementById('filter-data').addEventListener('change', updateDashboard);
@@ -2912,5 +2572,19 @@ window.updateParticipantValuePaid = async function(participantId, newValue) {
         document.getElementById('filter-status').addEventListener('change', updateDashboard);
     
     </script>
+
+    <!-- ✅ Modal do Recibo -->
+    <div id="receipt-area" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 9999; max-width: 600px;">
+    <h2 style="margin-bottom: 20px;">Recibo de Pagamento</h2>
+    <div id="receipt-content">
+        <!-- Conteúdo do recibo será preenchido via JS -->
+    </div>
+    <div style="text-align: right; margin-top: 20px;">
+        <button onclick="closeReceiptModal()" style="padding: 8px 16px; border: none; background: #f44336; color: white; border-radius: 5px; cursor: pointer;">Fechar</button>
+    </div>
+    </div>
+
+
+
 </body>
 </html>
