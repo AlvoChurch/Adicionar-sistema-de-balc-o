@@ -2305,39 +2305,105 @@ async function updateInscricoesTable(participants) {
             }
         }
 
-        // ===== SISTEMA DE RECIBOS MELHORADO =====
+        // ===== SISTEMA DE RECIBOS CORRIGIDO =====
         async function generateReceipt(participantId) {
-            const participant = allParticipants.find(p => p.id === participantId);
-            if (!participant) return;
+            try {
+                console.log('🧾 Gerando recibo para participante:', participantId);
+                
+                const participant = allParticipants.find(p => p.id == participantId);
+                if (!participant) {
+                    showNotification('Participante não encontrado', 'error');
+                    return;
+                }
 
-            // Buscar último pagamento
-            const { data, error } = await supabase
-                .from('pagamentos_históricos')
-                .select('*')
-                .eq('inscricao_id', participantId)
-                .order('data_pagamento', { ascending: false })
-                .limit(1);
+                // ✅ BUSCAR ÚLTIMO PAGAMENTO - Ordenar por data_pagamento (mais recente primeiro)
+                const { data: payments, error } = await supabase
+                    .from('pagamentos_históricos')
+                    .select('*')
+                    .eq('inscricao_id', participantId)
+                    .order('data_pagamento', { ascending: false })  // ✅ CORREÇÃO: Por data_pagamento
+                    .limit(1);
 
-            if (error) {
-                console.error('Erro ao buscar último pagamento:', error);
-                return;
+                if (error) {
+                    console.error('Erro ao buscar pagamentos:', error);
+                }
+
+                const ultimoPagamento = payments && payments.length > 0 ? payments[0] : null;
+                
+                console.log('💰 Último pagamento encontrado:', ultimoPagamento);
+                
+                // Criar conteúdo do recibo
+                const receiptHTML = `
+                    <div class="receipt-header">
+                        <h2 style="margin: 0; color: #ff6b35; font-size: 1.8em;">🏕️ O RETIRO 2025</h2>
+                        <div style="font-weight: bold; margin: 5px 0;">VISÃO • MISSÃO • PRESSÃO</div>
+                        <div style="font-size: 0.9em; color: #666;">COMPROVANTE DE PAGAMENTO</div>
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <div style="margin-bottom: 8px;"><strong>PARTICIPANTE:</strong></div>
+                        <div style="margin-bottom: 15px;">${participant.nome_completo}</div>
+                        
+                        <div style="margin-bottom: 8px;"><strong>WHATSAPP:</strong></div>
+                        <div style="margin-bottom: 15px;">${participant.whatsapp || 'N/A'}</div>
+                        
+                        <div style="margin-bottom: 8px;"><strong>STATUS ATUAL:</strong></div>
+                        <div style="margin-bottom: 15px;">${getStatusText(participant.status_pagamento)}</div>
+                        
+                        <div style="margin-bottom: 8px;"><strong>VALOR TOTAL PAGO:</strong></div>
+                        <div style="margin-bottom: 15px; font-size: 1.2em; font-weight: bold;">R$ ${participant.valor_pago || '0,00'}</div>
+                        
+                        ${ultimoPagamento ? `
+                        <div style="border-top: 1px dashed #333; margin: 15px 0; padding-top: 15px;">
+                            <div style="font-weight: bold; margin-bottom: 10px;">ÚLTIMO PAGAMENTO:</div>
+                            <div style="margin-bottom: 5px;"><strong>Valor:</strong> R$ ${ultimoPagamento.valor_pago}</div>
+                            <div style="margin-bottom: 5px;"><strong>Forma:</strong> ${ultimoPagamento.forma_pagamento}</div>
+                            <div style="margin-bottom: 5px;"><strong>Data:</strong> ${formatDateTime(convertToLocalTime(ultimoPagamento.data_pagamento))}</div>
+                            <div style="margin-bottom: 5px;"><strong>Atendente:</strong> ${ultimoPagamento.atendente || 'N/A'}</div>
+                            ${ultimoPagamento.observacoes ? `<div style="margin-bottom: 5px;"><strong>Obs:</strong> ${ultimoPagamento.observacoes}</div>` : ''}
+                        </div>
+                        ` : `
+                        <div style="border-top: 1px dashed #333; margin: 15px 0; padding-top: 15px; text-align: center; color: #666;">
+                            Nenhum pagamento registrado no histórico
+                        </div>
+                        `}
+                        
+                        <div style="margin-bottom: 8px;"><strong>FUNÇÃO NO RETIRO:</strong></div>
+                        <div style="margin-bottom: 15px;">${participant.vai_servir_receber || 'N/A'}</div>
+                    </div>
+                    
+                    <div class="receipt-footer">
+                        <div style="text-align: center; margin-bottom: 10px;">
+                            ${participant.status_pagamento === 'PAGO' ? 
+                                '✅ <strong>INSCRIÇÃO CONFIRMADA!</strong>' : 
+                                '⏳ Aguardando complemento do pagamento'
+                            }
+                        </div>
+                        <div style="text-align: center; font-size: 0.8em;">
+                            Gerado em: ${formatDateTime(new Date())}<br>
+                            Sistema de Balcão - ALVO CHURCH<br>
+                            Atendente: ${currentUser ? currentUser.email.split('@')[0] : 'Sistema'}
+                        </div>
+                    </div>
+                `;
+
+                // ✅ PREENCHER MODAL E EXIBIR
+                document.getElementById('receipt-content').innerHTML = receiptHTML;
+                document.getElementById('receipt-modal').style.display = 'flex';
+                
+                // ✅ ARMAZENAR dados para outras funções
+                currentReceipt = {
+                    participant: participant,
+                    content: receiptHTML,
+                    ultimoPagamento: ultimoPagamento
+                };
+
+                console.log('✅ Recibo gerado e exibido com sucesso!');
+
+            } catch (error) {
+                console.error('❌ Erro ao gerar recibo:', error);
+                showNotification('Erro ao gerar recibo: ' + error.message, 'error');
             }
-
-            const ultimoPagamento = data[0];
-
-            const receiptContent = `
-                <p><strong>Nome:</strong> ${participant.nome_completo}</p>
-                <p><strong>WhatsApp:</strong> ${participant.whatsapp}</p>
-                <p><strong>Valor Pago:</strong> R$ ${ultimoPagamento?.valor_pago || '---'}</p>
-                <p><strong>Forma de Pagamento:</strong> ${ultimoPagamento?.forma_pagamento || '---'}</p>
-                <p><strong>Data:</strong> ${ultimoPagamento?.data_pagamento ? new Date(ultimoPagamento.data_pagamento).toLocaleString() : '---'}</p>
-                <p><strong>Atendente:</strong> ${ultimoPagamento?.atendente || '---'}</p>
-            `;
-
-            const receiptArea = document.getElementById('receipt-area');
-            document.getElementById('receipt-content').innerHTML = receiptContent;
-            receiptArea.style.display = 'block';
-            window.scrollTo({ top: receiptArea.offsetTop - 40, behavior: 'smooth' });
         }
 
 
