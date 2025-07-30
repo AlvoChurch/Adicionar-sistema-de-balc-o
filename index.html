@@ -1391,6 +1391,38 @@ async function addNewPayment() {
         return;
     }
 
+    // ✅ VALIDAÇÃO DE VALOR MÁXIMO - COM AVISO CLARO
+    if (numericValue > 520) {
+        alert('❌ ATENÇÃO!\n\nValor máximo permitido é R$ 520,00\n\nDigite um valor menor.');
+        document.getElementById('new-payment-value').focus();
+        document.getElementById('new-payment-value').style.borderColor = '#ef4444';
+        setTimeout(() => {
+            document.getElementById('new-payment-value').style.borderColor = '#333';
+        }, 3000);
+        return;
+    }
+
+    // ✅ VALIDAÇÃO DE VALOR TOTAL CORRIGIDA - BUSCAR HISTÓRICO REAL
+    try {
+        const { data: pagamentosExistentes } = await supabase
+            .from('pagamentos_históricos')
+            .select('valor_pago')
+            .eq('inscricao_id', currentParticipant.id);
+        
+        const totalRealPago = pagamentosExistentes ? 
+            pagamentosExistentes.reduce((sum, p) => sum + parseFloat(p.valor_pago), 0) : 0;
+        
+        if (totalRealPago + numericValue > 520) {
+            const maxAllowed = 520 - totalRealPago;
+            alert(`❌ ATENÇÃO!\n\nEste pagamento excederia o limite de R$ 520,00\n\nTotal já pago (histórico): R$ ${totalRealPago.toFixed(2).replace('.', ',')}\nMáximo permitido agora: R$ ${maxAllowed.toFixed(2).replace('.', ',')}`);
+            document.getElementById('new-payment-value').value = maxAllowed > 0 ? maxAllowed.toFixed(2).replace('.', ',') : '0,00';
+            document.getElementById('new-payment-value').focus();
+            return;
+        }
+    } catch (error) {
+        console.error('Erro ao verificar histórico:', error);
+    }
+
     try {
         // 1. INSERIR no histórico
         const { error: insertError } = await supabase
@@ -1427,6 +1459,11 @@ async function addNewPayment() {
         document.getElementById('new-payment-value').value = '';
         document.getElementById('new-payment-method').value = '';
         document.getElementById('new-payment-obs').value = '';
+
+        // ✅ GERAR RECIBO AUTOMATICAMENTE APÓS PAGAMENTO
+        setTimeout(() => {
+            generateReceipt(currentParticipant.id);
+        }, 1000);
 
     } catch (error) {
         console.error('Erro ao adicionar pagamento:', error);
@@ -1654,13 +1691,12 @@ if (totalElement) {
 }
 async function calcularPorFormaPagamento(forma) {
     try {
-        // Obter data do filtro ou hoje
         const filterData = document.getElementById('filter-data').value;
         const dataFiltro = filterData || new Date().toISOString().split('T')[0];
         
         console.log('🔍 DEBUG - Forma:', forma, 'Data:', dataFiltro);
         
-        // Buscar pagamentos do dia na tabela histórico
+        // ✅ CORRIGIDO: Buscar apenas pagamentos da forma específica
         const { data: pagamentosDia, error } = await supabase
             .from('pagamentos_históricos')
             .select('*')
@@ -1668,20 +1704,21 @@ async function calcularPorFormaPagamento(forma) {
             .gte('data_pagamento', dataFiltro + 'T00:00:00')
             .lt('data_pagamento', dataFiltro + 'T23:59:59');
             
-        console.log('🔍 DEBUG - Pagamentos encontrados:', pagamentosDia);
+        console.log(`💳 ${forma} - Pagamentos encontrados:`, pagamentosDia);
             
         if (error) {
             console.error('Erro ao buscar pagamentos:', error);
             return { qtd: 0, valor: 0 };
         }
         
+        // ✅ CONTAR APENAS TRANSAÇÕES ÚNICAS DA FORMA ESPECÍFICA
         const qtd = pagamentosDia ? pagamentosDia.length : 0;
         const valor = pagamentosDia ? pagamentosDia.reduce((total, p) => {
             const val = parseFloat(p.valor_pago);
             return total + (isNaN(val) ? 0 : val);
         }, 0) : 0;
         
-        console.log(`💳 ${forma} do dia:`, { qtd, valor });
+        console.log(`💳 ${forma} FINAL:`, { qtd, valor });
         return { qtd, valor };
         
     } catch (error) {
@@ -1916,83 +1953,131 @@ async function updateInscricoesTable(participants) {
             printWindow.print();
         }
 
-        // ===== EXPORTAÇÃO EXCEL MELHORADA =====
+        // Dados filtrados para exportação - COM SEPARAÇÃO POR MODALIDADE
         async function exportToExcel() {
             try {
-                showNotification('Gerando arquivo Excel...', 'info');
+                showNotification('Gerando arquivo Excel com modalidades separadas...', 'info');
+                
+                // Usar dados filtrados do dashboard
+                const filteredData = allParticipants.filter(p => {
+                    const filterData = document.getElementById('filter-data').value;
+                    if (!filterData) return p.data_confirmacao_pagamento;
+                    
+                    if (!p.data_confirmacao_pagamento) return false;
+                    
+                    const pagamentoDate = new Date(p.data_confirmacao_pagamento);
+                    const filterDate = new Date(filterData + 'T00:00:00');
+                    
+                    return pagamentoDate.toDateString() === filterDate.toDateString();
+                });
                 
                 const wb = XLSX.utils.book_new();
-
-                // Aba 1: Inscrições Completas
-                const inscricoesData = allParticipants.map(p => ({
-                    'ID': p.id,
-                    'Nome Completo': p.nome_completo,
-                    'Sexo': p.sexo,
-                    'Idade': p.idade,
-                    'WhatsApp': p.whatsapp,
-                    'Email': p.email,
-                    'Endereço': p.endereco,
-                    'Número': p.numero,
-                    'Bairro': p.bairro,
-                    'Cidade': p.cidade,
-                    'Cor Rede': p.cor_rede,
-                    'Vai Servir/Receber': p.vai_servir_receber,
-                    'Status Pagamento': p.status_pagamento,
-                    'Valor Pago': p.valor_pago,
-                    'Forma Pagamento': p.forma_pagamento,
-                    'Atendente': p.atendente,
-                    'Data Inscrição': formatDateTime(convertToLocalTime(p.data_inscricao)),
-                    'Data Confirmação': p.data_confirmacao_pagamento ? formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento)) : 'N/A',
-                    'Observações': p.observacoes || ''
-                }));
                 
-                const wsInscricoes = XLSX.utils.json_to_sheet(inscricoesData);
-                XLSX.utils.book_append_sheet(wb, wsInscricoes, 'Inscrições');
-
-                // Aba 2: Resumo Executivo
-                const resumoData = [
-                    { 'Métrica': 'Total de Inscrições', 'Valor': allParticipants.length },
-                    { 'Métrica': 'Homens', 'Valor': allParticipants.filter(p => p.sexo === 'MASCULINO').length },
-                    { 'Métrica': 'Mulheres', 'Valor': allParticipants.filter(p => p.sexo === 'FEMININO').length },
-                    { 'Métrica': 'Pago Parcialmente', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length },
-                    { 'Métrica': 'Pago Completo', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PAGO').length },
-                    { 'Métrica': 'Pendentes', 'Valor': allParticipants.filter(p => p.status_pagamento === 'PENDENTE').length },
-                    { 'Métrica': 'Pagamentos PIX', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'PIX').length },
-                    { 'Métrica': 'Pagamentos Dinheiro', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'DINHEIRO').length },
-                    { 'Métrica': 'Pagamentos Cartão Crédito', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'CARTÃO DE CRÉDITO').length },
-                    { 'Métrica': 'Pagamentos Cartão Débito', 'Valor': allParticipants.filter(p => p.forma_pagamento === 'CARTÃO DE DÉBITO').length }
-                ];
+                // ✅ BUSCAR MODALIDADES SEPARADAS PARA CADA PESSOA
+                const dashboardData = [];
+                for (const p of filteredData) {
+                    const filterData = document.getElementById('filter-data').value || new Date().toISOString().split('T')[0];
+                    
+                    // Buscar pagamentos do dia por modalidade
+                    const { data: pagamentosDia } = await supabase
+                        .from('pagamentos_históricos')
+                        .select('*')
+                        .eq('inscricao_id', p.id)
+                        .gte('data_pagamento', filterData + 'T00:00:00')
+                        .lt('data_pagamento', filterData + 'T23:59:59');
+                    
+                    // Separar por modalidade
+                    let pixDia = 0, dinheiroDia = 0, creditoDia = 0, debitoDia = 0;
+                    
+                    if (pagamentosDia) {
+                        pagamentosDia.forEach(pag => {
+                            const valor = parseFloat(pag.valor_pago) || 0;
+                            switch(pag.forma_pagamento) {
+                                case 'PIX': pixDia += valor; break;
+                                case 'DINHEIRO': dinheiroDia += valor; break;
+                                case 'CARTÃO DE CRÉDITO': creditoDia += valor; break;
+                                case 'CARTÃO DE DÉBITO': debitoDia += valor; break;
+                            }
+                        });
+                    }
+                    
+                    const totalDia = pixDia + dinheiroDia + creditoDia + debitoDia;
+                    
+                    dashboardData.push({
+                        'Nome': p.nome_completo,
+                        'WhatsApp': p.whatsapp,
+                        'Sexo': p.sexo,
+                        'Status': getStatusText(p.status_pagamento),
+                        'Forma Geral': p.forma_pagamento || 'N/A',
+                        'Valor Total': p.valor_pago || 'R$ 0,00',
+                        'Total Dia': totalDia > 0 ? `R$ ${totalDia.toFixed(2).replace('.', ',')}` : 'R$ 0,00',
+                        'PIX Dia': pixDia > 0 ? `R$ ${pixDia.toFixed(2).replace('.', ',')}` : '-',
+                        'Dinheiro Dia': dinheiroDia > 0 ? `R$ ${dinheiroDia.toFixed(2).replace('.', ',')}` : '-',
+                        'Cartão Crédito Dia': creditoDia > 0 ? `R$ ${creditoDia.toFixed(2).replace('.', ',')}` : '-',
+                        'Cartão Débito Dia': debitoDia > 0 ? `R$ ${debitoDia.toFixed(2).replace('.', ',')}` : '-',
+                        'Atendente': p.atendente || 'N/A',
+                        'Data Inscrição': formatDateTime(convertToLocalTime(p.data_inscricao))
+                    });
+                }
                 
-                const wsResumo = XLSX.utils.json_to_sheet(resumoData);
-                XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
-
-                // Aba 3: Ganhadores de Camisa
-                const winners = allParticipants
-                    .filter(p => (p.status_pagamento === 'PAGO PARCIALMENTE' || p.status_pagamento === 'PAGO') && p.data_confirmacao_pagamento)
-                    .sort((a, b) => new Date(a.data_confirmacao_pagamento) - new Date(b.data_confirmacao_pagamento))
-                    .slice(0, 150);
-
-                const winnersData = winners.map((p, index) => ({
-                    'Posição': index + 1,
-                    'Nome': p.nome_completo,
-                    'WhatsApp': p.whatsapp,
-                    'Sexo': p.sexo,
-                    'Status': p.status_pagamento,
-                    'Data Pagamento': formatDateTime(convertToLocalTime(p.data_confirmacao_pagamento))
-                }));
+                const ws = XLSX.utils.json_to_sheet(dashboardData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Pagamentos Por Modalidade');
                 
-                const wsWinners = XLSX.utils.json_to_sheet(winnersData);
-                XLSX.utils.book_append_sheet(wb, wsWinners, 'Ganhadores Camisa');
-
-                // Salvar arquivo
-                const fileName = `retiro_2025_completo_${new Date().toISOString().split('T')[0]}.xlsx`;
+                const fileName = `dashboard_modalidades_${new Date().toISOString().split('T')[0]}.xlsx`;
                 XLSX.writeFile(wb, fileName);
-                showNotification('Arquivo Excel exportado com sucesso!', 'success');
-
+                showNotification('Planilha com modalidades separadas exportada!', 'success');
+                
             } catch (error) {
-                console.error('Erro ao exportar Excel:', error);
-                showNotification('Erro ao exportar arquivo Excel: ' + error.message, 'error');
+                console.error('Erro ao exportar dashboard:', error);
+                showNotification('Erro ao exportar dashboard com modalidades', 'error');
             }
+        }
+
+        // ✅ NOVA FUNÇÃO PARA PEGAR DADOS FILTRADOS
+        async function getFilteredParticipants() {
+            const filterData = document.getElementById('filter-data').value;
+            const filterAtendente = document.getElementById('filter-atendente').value;
+            const filterForma = document.getElementById('filter-forma').value;
+            const filterStatus = document.getElementById('filter-status').value;
+
+            let filteredParticipants = filterData ? 
+                [...allParticipants] : 
+                allParticipants.filter(p => p.data_confirmacao_pagamento);
+
+            if (filterData) {
+                filteredParticipants = filteredParticipants.filter(p => {
+                    if (!p.data_confirmacao_pagamento) return false;
+                    
+                    try {
+                        const pagamentoDate = new Date(p.data_confirmacao_pagamento);
+                        const filterDate = new Date(filterData + 'T00:00:00');
+                        
+                        const pagamentoDay = pagamentoDate.getFullYear() + '-' + 
+                                            String(pagamentoDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                            String(pagamentoDate.getDate()).padStart(2, '0');
+                        
+                        const filterDay = filterDate.getFullYear() + '-' + 
+                                        String(filterDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                        String(filterDate.getDate()).padStart(2, '0');
+                        
+                        return pagamentoDay === filterDay;
+                    } catch (error) {
+                        return false;
+                    }
+                });
+            }
+
+            if (filterAtendente) {
+                filteredParticipants = filteredParticipants.filter(p => p.atendente === filterAtendente);
+            }
+            if (filterForma) {
+                filteredParticipants = filteredParticipants.filter(p => p.forma_pagamento === filterForma);
+            }
+            if (filterStatus) {
+                filteredParticipants = filteredParticipants.filter(p => p.status_pagamento === filterStatus);
+            }
+
+            return filteredParticipants;
         }
 
         function exportDashboard() {
@@ -2410,8 +2495,29 @@ async function updateInscricoesTable(participants) {
         window.generateReceipt = generateReceipt;
 
         function closeReceiptModal() {
-            document.getElementById('receipt-modal').style.display = 'none';
+            console.log('🔍 Tentando fechar recibo...');
+            
+            // Tentar fechar modal principal
+            const receiptModal = document.getElementById('receipt-modal');
+            if (receiptModal) {
+                receiptModal.style.display = 'none';
+                console.log('✅ Modal principal fechado');
+            } else {
+                console.log('❌ Modal principal não encontrado');
+            }
+            
+            // Tentar fechar área suspensa  
+            const receiptArea = document.getElementById('receipt-area');
+            if (receiptArea) {
+                receiptArea.style.display = 'none';
+                console.log('✅ Área suspensa fechada');
+            } else {
+                console.log('❌ Área suspensa não encontrada');
+            }
+            
+            // Limpar dados
             currentReceipt = null;
+            console.log('✅ Função closeReceiptModal executada!');
         }
 
         function printReceipt() {
@@ -2624,6 +2730,7 @@ async function updateInscricoesTable(participants) {
         window.closePaymentsModal = closePaymentsModal;
         window.addNewPayment = addNewPayment;
         window.deletePayment = deletePayment;
+        window.closeReceiptModal = closeReceiptModal;
         window.forceSyncInscricaoWithHistory = forceSyncInscricaoWithHistory;
         window.closeReceiptModal = function () {
             const receiptArea = document.getElementById('receipt-area');
@@ -2637,6 +2744,34 @@ async function updateInscricoesTable(participants) {
         document.getElementById('filter-forma').addEventListener('change', updateDashboard);
         document.getElementById('filter-status').addEventListener('change', updateDashboard);
     
+        // ===== CORREÇÃO FINAL BOTÃO FECHAR RECIBO =====
+        window.closeReceiptModal = function() {
+            console.log('🔍 Executando closeReceiptModal...');
+            
+            // Encontrar e fechar o modal
+            const modal = document.getElementById('receipt-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('✅ Modal fechado!');
+            } else {
+                console.log('❌ Modal não encontrado');
+            }
+            
+            // Tentar fechar área suspensa também
+            const area = document.getElementById('receipt-area');
+            if (area) {
+                area.style.display = 'none';
+                console.log('✅ Área suspensa fechada!');
+            }
+            
+            // Limpar dados
+            if (typeof currentReceipt !== 'undefined') {
+                currentReceipt = null;
+            }
+        };
+
+        console.log('✅ Função closeReceiptModal carregada permanentemente!');
+
     </script>
 
     <!-- ✅ Modal do Recibo -->
