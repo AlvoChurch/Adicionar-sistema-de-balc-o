@@ -1554,154 +1554,274 @@ async function addNewPayment() {
             document.getElementById('dashboard-container').style.display = 'none';
         }
 
-async function updateDashboard() {
+// ===== SISTEMA DE BUSCA CORRIGIDO =====
+        
+        // 🔧 FUNÇÃO DE BUSCA CORRIGIDA - BUSCAR DIRETO NO SUPABASE
+        async function searchParticipants() {
+            const searchTerm = document.getElementById('search-name').value.trim();
+            const statusDiv = document.getElementById('search-status');
+            const resultsContainer = document.getElementById('results-container');
 
-  // ✅ DEBUG: Verificar dados antes dos filtros
-    console.log('🔍 AUDIT TOTAL:', allParticipants.length);
-    console.log('🔍 AUDIT STATUS:', {
-        pago: allParticipants.filter(p => p.status_pagamento === 'PAGO').length,
-        pagoParcial: allParticipants.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length,
-        pendente: allParticipants.filter(p => p.status_pagamento === 'PENDENTE').length,
-        outros: allParticipants.filter(p => !['PAGO', 'PAGO PARCIALMENTE', 'PENDENTE'].includes(p.status_pagamento)).length
-    });
+            if (!searchTerm) {
+                statusDiv.textContent = 'Digite um nome para buscar';
+                return;
+            }
 
-    const filterData = document.getElementById('filter-data').value;
-    const filterAtendente = document.getElementById('filter-atendente').value;
-    const filterForma = document.getElementById('filter-forma').value;
-    const filterStatus = document.getElementById('filter-status').value;
-
-    // ✅ CORREÇÃO: Para dashboard de fechamento, só considerar quem PAGOU
-    let filteredParticipants = filterData ? 
-    [...allParticipants] : // Se tem filtro de data, mostrar todos e depois filtrar
-    allParticipants.filter(p => p.data_confirmacao_pagamento); // Se não tem filtro, só quem pagou
-
-
-    // ✅ CORRIGIDO: Filtro por data de pagamento (para fechamento de caixa)
-    if (filterData) {
-        filteredParticipants = filteredParticipants.filter(p => {
-            // Só considerar quem tem data de confirmação de pagamento
-            if (!p.data_confirmacao_pagamento) return false;
+            statusDiv.innerHTML = '<div class="loading"></div>';
             
             try {
-                const pagamentoDate = new Date(p.data_confirmacao_pagamento);
-                const filterDate = new Date(filterData + 'T00:00:00'); // Força início do dia
+                console.log('🔍 Buscando por:', searchTerm);
                 
-                // Extrair apenas ano, mês e dia para comparação
-                const pagamentoDay = pagamentoDate.getFullYear() + '-' + 
-                                    String(pagamentoDate.getMonth() + 1).padStart(2, '0') + '-' + 
-                                    String(pagamentoDate.getDate()).padStart(2, '0');
-                
-                const filterDay = filterDate.getFullYear() + '-' + 
-                                String(filterDate.getMonth() + 1).padStart(2, '0') + '-' + 
-                                String(filterDate.getDate()).padStart(2, '0');
-                
-                console.log(`🔍 Comparando: ${pagamentoDay} === ${filterDay}`);
-                
-                return pagamentoDay === filterDay;
+                // ✅ BUSCA DIRETA NO SUPABASE COM MÚLTIPLOS CRITÉRIOS
+                const { data: participantesEncontrados, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('status', 'ATIVO')
+                    .or(`nome_completo.ilike.%${searchTerm}%,whatsapp.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+                    .order('data_inscricao', { ascending: false })
+                    .limit(20);
+
+                if (error) {
+                    console.error('❌ Erro na busca Supabase:', error);
+                    throw error;
+                }
+
+                console.log('📋 Participantes encontrados:', participantesEncontrados);
+
+                if (!participantesEncontrados || participantesEncontrados.length === 0) {
+                    statusDiv.textContent = 'Nenhum participante encontrado';
+                    resultsContainer.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <div style="font-size: 2em; margin-bottom: 10px;">🔍</div>
+                            <div>Nenhum resultado encontrado para "${searchTerm}"</div>
+                            <div style="margin-top: 10px; font-size: 0.9em;">
+                                Tente buscar por:
+                                <br>• Nome completo ou parte dele
+                                <br>• WhatsApp
+                                <br>• E-mail
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                statusDiv.textContent = `${participantesEncontrados.length} participante(s) encontrado(s)`;
+                displaySearchResults(participantesEncontrados);
+
             } catch (error) {
-                console.error('Erro no filtro de data de pagamento:', error);
-                return false;
+                console.error('❌ Erro na busca:', error);
+                statusDiv.textContent = 'Erro na busca';
+                resultsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff6666;">
+                        <div style="font-size: 2em; margin-bottom: 10px;">❌</div>
+                        <div>Erro ao buscar participantes</div>
+                        <div style="margin-top: 10px; font-size: 0.9em;">
+                            ${error.message}
+                        </div>
+                    </div>
+                `;
+                showNotification('Erro ao buscar participantes: ' + error.message, 'error');
+            }
+        }
+        
+        // 🔧 FUNÇÃO PARA TESTAR BUSCA ESPECÍFICA
+        async function testSearchMarili() {
+            console.log('🧪 Testando busca específica da MARILI...');
+            
+            try {
+                const { data: mariliResults, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('status', 'ATIVO')
+                    .ilike('nome_completo', '%MARILI%');
+
+                console.log('🔍 Resultados busca MARILI:', mariliResults);
+                
+                if (error) {
+                    console.error('❌ Erro na busca MARILI:', error);
+                    return null;
+                }
+                
+                // Testar busca por ID específico
+                const { data: participantId63 } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('id', 63)
+                    .single();
+                
+                console.log('🆔 Participante ID 63:', participantId63);
+                
+                return mariliResults;
+                
+            } catch (error) {
+                console.error('❌ Erro no teste MARILI:', error);
+                return null;
+            }
+        }
+        
+        // Event Listeners para busca
+        document.getElementById('search-btn').addEventListener('click', searchParticipants);
+        document.getElementById('search-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchParticipants();
+        });
+
+        // Auto-maiúscula no campo de busca
+        document.getElementById('search-name').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+// ===== FUNÇÃO updateDashboard CORRIGIDA =====
+async function updateDashboard() {
+    console.log('🔄 Dashboard corrigido - usando apenas histórico de pagamentos');
+    
+    try {
+        const filterData = document.getElementById('filter-data').value;
+        const filterAtendente = document.getElementById('filter-atendente').value;
+        const filterForma = document.getElementById('filter-forma').value;
+        const filterStatus = document.getElementById('filter-status').value;
+        
+        // ✅ BUSCAR APENAS DO HISTÓRICO DE PAGAMENTOS
+        let query = supabase
+            .from('pagamentos_históricos')
+            .select('*');
+        
+        // ✅ APLICAR FILTROS
+        if (filterData) {
+            query = query
+                .gte('data_pagamento', filterData + 'T00:00:00')
+                .lte('data_pagamento', filterData + 'T23:59:59');
+        }
+        
+        if (filterAtendente) query = query.eq('atendente', filterAtendente);
+        if (filterForma) query = query.eq('forma_pagamento', filterForma);
+        
+        const { data: pagamentos, error } = await query;
+        
+        if (error) throw error;
+        
+        // ✅ CALCULAR ESTATÍSTICAS
+        const stats = {
+            totalTransacoes: pagamentos?.length || 0,
+            totalArrecadado: 0,
+            preInscricoes: 0,
+            pagosCompleto: 0,
+            formas: {
+                'PIX': { qtd: 0, valor: 0 },
+                'DINHEIRO': { qtd: 0, valor: 0 },
+                'CARTÃO DE CRÉDITO': { qtd: 0, valor: 0 },
+                'CARTÃO DE DÉBITO': { qtd: 0, valor: 0 }
+            }
+        };
+        
+        // ✅ PROCESSAR TODOS OS PAGAMENTOS
+        pagamentos?.forEach(p => {
+            const valor = parseFloat(p.valor_pago) || 0;
+            stats.totalArrecadado += valor;
+            
+            if (valor >= 150 && valor < 520) stats.preInscricoes++;
+            if (valor >= 520) stats.pagosCompleto++;
+            
+            if (stats.formas[p.forma_pagamento]) {
+                stats.formas[p.forma_pagamento].qtd += 1;
+                stats.formas[p.forma_pagamento].valor += valor;
             }
         });
+        
+        // ✅ ATUALIZAR INTERFACE
+        document.getElementById('dash-total-inscricoes').textContent = stats.totalTransacoes;
+        document.getElementById('dash-pre-inscricoes').textContent = stats.preInscricoes;
+        document.getElementById('dash-pagos-completo').textContent = stats.pagosCompleto;
+        document.getElementById('total-arrecadado').textContent = 
+            `R$ ${stats.totalArrecadado.toFixed(2).replace('.', ',')}`;
+        
+        document.getElementById('dash-valor-pix').innerHTML = `
+            <div style="font-size: 1.8em; font-weight: bold;">${stats.formas['PIX'].qtd}</div>
+            <div style="font-size: 0.9em;">R$ ${stats.formas['PIX'].valor.toFixed(2).replace('.', ',')}</div>
+        `;
+        
+        document.getElementById('dash-valor-dinheiro').innerHTML = `
+            <div style="font-size: 1.8em; font-weight: bold;">${stats.formas['DINHEIRO'].qtd}</div>
+            <div style="font-size: 0.9em;">R$ ${stats.formas['DINHEIRO'].valor.toFixed(2).replace('.', ',')}</div>
+        `;
+        
+        document.getElementById('dash-valor-cartao').innerHTML = `
+            <div style="font-size: 1.8em; font-weight: bold;">${stats.formas['CARTÃO DE CRÉDITO'].qtd}</div>
+            <div style="font-size: 0.9em;">R$ ${stats.formas['CARTÃO DE CRÉDITO'].valor.toFixed(2).replace('.', ',')}</div>
+        `;
+
+        document.getElementById('dash-valor-debito').innerHTML = `
+            <div style="font-size: 1.8em; font-weight: bold;">${stats.formas['CARTÃO DE DÉBITO'].qtd}</div>
+            <div style="font-size: 0.9em;">R$ ${stats.formas['CARTÃO DE DÉBITO'].valor.toFixed(2).replace('.', ',')}</div>
+        `;
+        
+        // ✅ ATUALIZAR TABELA
+        await updateInscricoesTableFromPayments(pagamentos);
+        
+        console.log(`✅ Dashboard: ${stats.totalTransacoes} transações, R$ ${stats.totalArrecadado.toFixed(2)}`);
+        
+    } catch (error) {
+        console.error('❌ Erro no dashboard:', error);
+        showNotification('Erro ao atualizar dashboard: ' + error.message, 'error');
     }
-
-    if (filterAtendente) {
-        filteredParticipants = filteredParticipants.filter(p => 
-            p.atendente === filterAtendente
-        );
-    }
-
-    if (filterForma) {
-        filteredParticipants = filteredParticipants.filter(p => 
-            p.forma_pagamento === filterForma
-        );
-    }
-
-    if (filterStatus) {
-        filteredParticipants = filteredParticipants.filter(p => 
-            p.status_pagamento === filterStatus
-        );
-    }
-
-    // Calcular métricas
-    const totalInscricoes = filteredParticipants.length;
-    
-    // Pré-inscrições: PAGO PARCIALMENTE com valor >= 150
-    const preInscricoes = filteredParticipants.filter(p => 
-    p.status_pagamento === 'PAGO PARCIALMENTE'
-    ).length;
-    
-    // Pagos completo: PAGO com valor >= 520
-    const pagosCompleto = filteredParticipants.filter(p => 
-    p.status_pagamento === 'PAGO'
-    ).length;
-    
-    // Calcular valores por forma de pagamento
-        const pixData = await calcularPorFormaPagamento('PIX');
-        const dinheiroData = await calcularPorFormaPagamento('DINHEIRO'); 
-        const creditoData = await calcularPorFormaPagamento('CARTÃO DE CRÉDITO');
-        const debitoData = await calcularPorFormaPagamento('CARTÃO DE DÉBITO');
-
-    // ✅ CORRIGIDO: Somar cartões corretamente
-    const totalCartaoQtd = creditoData.qtd + debitoData.qtd;
-    const totalCartaoValor = creditoData.valor + debitoData.valor;
-    
-// Calcular total arrecadado (corrigido)
-const totalArrecadado = filteredParticipants
-    .filter(p => p.valor_pago && p.valor_pago !== '0,00' && (p.status_pagamento === 'PAGO' || p.status_pagamento === 'PAGO PARCIALMENTE'))
-    .reduce((total, p) => {
-        const valor = parseFloat(p.valor_pago.replace(',', '.'));
-        return total + (isNaN(valor) ? 0 : valor);
-    }, 0);
-
-console.log('💰 Total calculado:', totalArrecadado, 'de', filteredParticipants.length, 'participantes');
-
-    // Atualizar interface
-    document.getElementById('dash-total-inscricoes').textContent = totalInscricoes;
-    document.getElementById('dash-pre-inscricoes').textContent = preInscricoes;
-    document.getElementById('dash-pagos-completo').textContent = pagosCompleto;
-    
-    document.getElementById('dash-valor-pix').innerHTML = `
-        <div style="font-size: 1.8em; font-weight: bold;">${pixData.qtd}</div>
-        <div style="font-size: 0.9em;">R$ ${pixData.valor.toFixed(2).replace('.', ',')}</div>
-    `;
-    
-    document.getElementById('dash-valor-dinheiro').innerHTML = `
-        <div style="font-size: 1.8em; font-weight: bold;">${dinheiroData.qtd}</div>
-        <div style="font-size: 0.9em;">R$ ${dinheiroData.valor.toFixed(2).replace('.', ',')}</div>
-    `;
-    
-    // ✅ CARTÃO DE CRÉDITO separado
-    document.getElementById('dash-valor-cartao').innerHTML = `
-        <div style="font-size: 1.8em; font-weight: bold;">${creditoData.qtd}</div>
-        <div style="font-size: 0.9em;">R$ ${creditoData.valor.toFixed(2).replace('.', ',')}</div>
-    `;
-
-    // ✅ CARTÃO DE DÉBITO separado  
-    document.getElementById('dash-valor-debito').innerHTML = `
-        <div style="font-size: 1.8em; font-weight: bold;">${debitoData.qtd}</div>
-        <div style="font-size: 0.9em;">R$ ${debitoData.valor.toFixed(2).replace('.', ',')}</div>
-    `;
-
-    // Atualizar tabela
-    updateInscricoesTable(filteredParticipants);
-    
-// Mostrar total arrecadado (com debug)
-const totalElement = document.getElementById('total-arrecadado');
-if (totalElement) {
-    totalElement.textContent = `R$ ${totalArrecadado.toFixed(2).replace('.', ',')}`;
-    console.log('💰 TOTAL FINAL:', totalArrecadado);
-    console.log('💰 PARTICIPANTES PAGOS:', filteredParticipants.filter(p => 
-        p.valor_pago && p.valor_pago !== '0,00' && 
-        (p.status_pagamento === 'PAGO' || p.status_pagamento === 'PAGO PARCIALMENTE')
-    ));
-} else {
-    console.error('❌ Elemento total-arrecadado não encontrado');
 }
-    
-    console.log('📊 Dashboard atualizado:', { totalInscricoes, preInscricoes, pagosCompleto, totalArrecadado });
 
+// ===== NOVA FUNÇÃO PARA TABELA - ADICIONAR ANTES DE calcularPorFormaPagamento =====
+async function updateInscricoesTableFromPayments(pagamentos) {
+    const tbody = document.getElementById('inscricoes-tbody');
+
+    if (!tbody) {
+        console.error('❌ Elemento inscricoes-tbody não encontrado');
+        return;
+    }
+
+    console.log('📋 Atualizando tabela com', pagamentos?.length || 0, 'pagamentos');
+
+    if (!pagamentos || pagamentos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">Nenhum resultado encontrado</td></tr>';
+        return;
+    }
+
+    try {
+        const linhas = pagamentos.map(p => {
+            const dataPagamento = new Date(p.data_pagamento).toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const valorFormatado = `R$ ${parseFloat(p.valor_pago).toFixed(2).replace('.', ',')}`;
+
+            return `
+                <tr style="cursor: pointer; border-bottom: 1px solid #333;">
+                    <td style="padding: 10px;">${p.nome_participante || 'N/A'}</td>
+                    <td style="padding: 10px;">-</td>
+                    <td style="padding: 10px;">-</td>
+                    <td style="padding: 10px;">
+                        <span class="btn btn-success" style="padding: 4px 8px; font-size: 0.8em; border-radius: 4px;">
+                            PAGO
+                        </span>
+                    </td>
+                    <td style="padding: 10px;">${p.forma_pagamento || 'N/A'}</td>
+                    <td style="padding: 10px; text-align: center;">
+                        <strong style="color: #22c55e;">${valorFormatado}</strong>
+                    </td>
+                    <td style="padding: 10px;">${p.atendente || 'N/A'}</td>
+                    <td style="padding: 10px;">${dataPagamento}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = linhas.join('');
+        console.log('✅ Tabela atualizada com valores reais do histórico');
+
+    } catch (error) {
+        console.error('❌ Erro ao atualizar tabela:', error);
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ff6666;">Erro ao carregar dados</td></tr>';
+    }
 }
+
 async function calcularPorFormaPagamento(forma) {
     try {
         const filterData = document.getElementById('filter-data').value;
