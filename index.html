@@ -1068,7 +1068,7 @@
         });
 
         async function searchParticipants() {
-            const searchTerm = document.getElementById('search-name').value.trim().toUpperCase();
+            const searchTerm = document.getElementById('search-name').value.trim();
             const statusDiv = document.getElementById('search-status');
             const resultsContainer = document.getElementById('results-container');
 
@@ -1080,24 +1080,37 @@
             statusDiv.innerHTML = '<div class="loading"></div>';
             
             try {
-                // Buscar participantes que contenham o termo no nome
-                const filteredParticipants = allParticipants.filter(participant => 
-                    participant.nome_completo && participant.nome_completo.toUpperCase().includes(searchTerm)
-                );
+                console.log('🔍 Buscando por:', searchTerm);
+                
+                // ✅ BUSCA DIRETA NO SUPABASE (não nos dados locais)
+                const { data: participantesEncontrados, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('status', 'ATIVO')
+                    .ilike('nome_completo', `%${searchTerm}%`) // case-insensitive
+                    .order('data_inscricao', { ascending: false })
+                    .limit(20);
 
-                if (filteredParticipants.length === 0) {
+                if (error) {
+                    console.error('❌ Erro na busca:', error);
+                    throw error;
+                }
+
+                console.log('📋 Resultados encontrados:', participantesEncontrados);
+
+                if (!participantesEncontrados || participantesEncontrados.length === 0) {
                     statusDiv.textContent = 'Nenhum participante encontrado';
                     resultsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhum resultado encontrado</div>';
                     return;
                 }
 
-                statusDiv.textContent = `${filteredParticipants.length} participante(s) encontrado(s)`;
-                displaySearchResults(filteredParticipants);
+                statusDiv.textContent = `${participantesEncontrados.length} participante(s) encontrado(s)`;
+                displaySearchResults(participantesEncontrados);
 
             } catch (error) {
-                console.error('Erro na busca:', error);
+                console.error('❌ Erro na busca:', error);
                 statusDiv.textContent = 'Erro na busca';
-                showNotification('Erro ao buscar participantes', 'error');
+                showNotification('Erro ao buscar participantes: ' + error.message, 'error');
             }
         }
 
