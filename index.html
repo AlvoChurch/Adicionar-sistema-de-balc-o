@@ -842,6 +842,53 @@
         let currentParticipant = null;
         let currentReceipt = null;
 
+        // ===== PASSO 1: ADICIONAR ESTA FUNÇÃO LOGO APÓS AS VARIÁVEIS GLOBAIS =====
+        // Coloque esta função logo após as linhas:
+        // let currentUser = null;
+        // let allParticipants = [];
+        // let currentParticipant = null;
+        // let currentReceipt = null;
+
+        // 🔧 FUNÇÃO HELPER PARA BUSCAR PARTICIPANTE (SEMPRE ATUALIZADO)
+        async function getParticipantById(participantId) {
+            console.log('🔍 Buscando participante:', participantId);
+            
+            try {
+                // ✅ SEMPRE BUSCAR NO SUPABASE PARA GARANTIR DADOS ATUALIZADOS
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('id', participantId)
+                    .eq('status', 'ATIVO')
+                    .single();
+                
+                if (error) {
+                    console.error('❌ Erro ao buscar participante:', error);
+                    throw new Error('Participante não encontrado: ' + error.message);
+                }
+                
+                if (!data) {
+                    throw new Error('Participante não encontrado no banco de dados');
+                }
+                
+                console.log('✅ Participante encontrado:', data.nome_completo);
+                
+                // ✅ ATUALIZAR/ADICIONAR NO ARRAY LOCAL
+                const existingIndex = allParticipants.findIndex(p => p.id == participantId);
+                if (existingIndex >= 0) {
+                    allParticipants[existingIndex] = data; // Atualizar dados existentes
+                } else {
+                    allParticipants.push(data); // Adicionar novo
+                }
+                
+                return data;
+                
+            } catch (error) {
+                console.error('❌ Erro crítico ao buscar participante:', error);
+                throw error;
+            }
+        }
+
         // ===== FUNÇÕES UTILITÁRIAS MELHORADAS =====
 	
 
@@ -1180,42 +1227,49 @@
         
         // Abrir modal de pagamentos
         async function openPaymentsModal(participantId) {
-            const participant = allParticipants.find(p => p.id == participantId);
-            if (!participant) return;
-
-            currentParticipant = participant;
-
-            // Mostrar info do participante
-            document.getElementById('payments-participant-info').innerHTML = `
-                <h4 style="color: var(--primary); margin-bottom: 10px;">${participant.nome_completo}</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
-                    <div><strong>WhatsApp:</strong> ${participant.whatsapp}</div>
-                    <div><strong>Status Atual:</strong> ${getStatusText(participant.status_pagamento)}</div>
-                    <div><strong>Valor na Tabela:</strong> ${participant.valor_pago || 'N/A'}</div>
-                </div>
-            `;
-
-            // Carregar histórico de pagamentos
-            await loadPaymentHistory(participantId);
+            console.log('💰 Abrindo modal de pagamentos para:', participantId);
             
-            // Aguardar carregamento do histórico para calcular valor pendente
-            setTimeout(() => {
-                const totalPaidText = document.getElementById('total-paid').textContent;
-                const totalPaid = parseFloat(totalPaidText.replace('R$ ', '').replace(',', '.')) || 0;
-                const remaining = Math.max(0, 520 - totalPaid);
+            try {
+                // ✅ SEMPRE BUSCAR DADOS FRESCOS DO BANCO
+                const participant = await getParticipantById(participantId);
+                currentParticipant = participant;
+
+                // Mostrar info do participante
+                document.getElementById('payments-participant-info').innerHTML = `
+                    <h4 style="color: var(--primary); margin-bottom: 10px;">${participant.nome_completo}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                        <div><strong>WhatsApp:</strong> ${participant.whatsapp}</div>
+                        <div><strong>Status Atual:</strong> ${getStatusText(participant.status_pagamento)}</div>
+                        <div><strong>Valor na Tabela:</strong> ${participant.valor_pago || 'N/A'}</div>
+                    </div>
+                `;
+
+                // Carregar histórico de pagamentos
+                await loadPaymentHistory(participantId);
                 
-                // Pré-preencher com valor pendente se houver
-                if (remaining > 0) {
-                    document.getElementById('new-payment-value').value = remaining.toFixed(2).replace('.', ',');
-                } else {
-                    document.getElementById('new-payment-value').value = '';
-                }
+                // Aguardar carregamento do histórico para calcular valor pendente
+                setTimeout(() => {
+                    const totalPaidText = document.getElementById('total-paid').textContent;
+                    const totalPaid = parseFloat(totalPaidText.replace('R$ ', '').replace(',', '.')) || 0;
+                    const remaining = Math.max(0, 520 - totalPaid);
+                    
+                    // Pré-preencher com valor pendente se houver
+                    if (remaining > 0) {
+                        document.getElementById('new-payment-value').value = remaining.toFixed(2).replace('.', ',');
+                    } else {
+                        document.getElementById('new-payment-value').value = '';
+                    }
+                    
+                    document.getElementById('new-payment-method').value = '';
+                    document.getElementById('new-payment-obs').value = '';
+                }, 500);
                 
-                document.getElementById('new-payment-method').value = '';
-                document.getElementById('new-payment-obs').value = '';
-            }, 500);
-            
-            document.getElementById('payments-modal').style.display = 'flex';
+                document.getElementById('payments-modal').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('❌ Erro ao abrir modal de pagamentos:', error);
+                showNotification('Erro ao abrir pagamentos: ' + error.message, 'error');
+            }
         }
 
         // Carregar histórico de pagamentos
@@ -1393,6 +1447,72 @@ async function addNewPayment() {
     const method = document.getElementById('new-payment-method').value;
     const obs = document.getElementById('new-payment-obs').value.trim();
 
+    // ✅ NOVA FUNCIONALIDADE: Salvar apenas observação
+    if (!value && !method && obs) {
+        // Se só tem observação (sem valor e sem forma), salvar apenas a observação
+        if (!confirm(`Salvar apenas a observação "${obs}" sem adicionar pagamento?`)) {
+            return;
+        }
+        
+        try {
+            console.log('📝 Salvando apenas observação:', obs);
+            
+            // Buscar observações atuais
+            const { data: currentData, error: fetchError } = await supabase
+                .from('inscricoes')
+                .select('observacoes')
+                .eq('id', currentParticipant.id)
+                .single();
+                
+            if (fetchError) throw fetchError;
+            
+            // Adicionar nova observação com timestamp
+            const timestamp = new Date().toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const newObservation = `[${timestamp}] ${obs}`;
+            const updatedObservations = currentData.observacoes ? 
+                `${currentData.observacoes} | ${newObservation}` : 
+                newObservation;
+            
+            // Atualizar apenas observações
+            const { error: updateError } = await supabase
+                .from('inscricoes')
+                .update({
+                    observacoes: updatedObservations,
+                    data_ultima_atualizacao: new Date().toISOString(),
+                    atendente: currentUser.email.split('@')[0]
+                })
+                .eq('id', currentParticipant.id);
+                
+            if (updateError) throw updateError;
+            
+            // Atualizar dados locais
+            const participantIndex = allParticipants.findIndex(p => p.id == currentParticipant.id);
+            if (participantIndex !== -1) {
+                allParticipants[participantIndex].observacoes = updatedObservations;
+            }
+            
+            // Limpar campo
+            document.getElementById('new-payment-obs').value = '';
+            
+            showNotification(`Observação "${obs}" salva com sucesso!`, 'success');
+            console.log('✅ Observação salva:', newObservation);
+            return; // Sair da função aqui
+            
+        } catch (error) {
+            console.error('❌ Erro ao salvar observação:', error);
+            showNotification('Erro ao salvar observação: ' + error.message, 'error');
+            return;
+        }
+    }
+
+    // ✅ VALIDAÇÃO ORIGINAL (só executa se não foi só observação)
     if (!value || !method) {
         showNotification('Preencha valor e forma de pagamento', 'error');
         return;
@@ -2220,113 +2340,123 @@ async function updateInscricoesTable(participants) {
         function exportInscricoes() {
             exportToExcel();
         }
-        // ===== MODAL DE DETALHES MELHORADO =====
+        // ===== PASSO 3: SUBSTITUIR A FUNÇÃO showParticipantDetails COMPLETA =====
+        // Encontre a função showParticipantDetails no seu código e substitua por esta:
+
         async function showParticipantDetails(participantId) {
-            const participant = allParticipants.find(p => p.id == participantId);
-            if (!participant) return;
+            console.log('📋 Abrindo detalhes para:', participantId);
+            
+            try {
+                // ✅ SEMPRE BUSCAR DADOS FRESCOS DO BANCO
+                const participant = await getParticipantById(participantId);
+                
+                const showDeleteButton = currentUser && currentUser.email === 'adm@alvo.com';
 
-            const showDeleteButton = currentUser && currentUser.email === 'adm@alvo.com';
-
-            const content = `
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">👤 Informações Pessoais</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Nome:</label>
-                            <input type="text" id="edit-name" class="input" value="${participant.nome_completo || ''}" 
-                                   onblur="updateParticipantName('${participantId}', this.value)">
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">WhatsApp:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.whatsapp || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">E-mail:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.email || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Sexo:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.sexo || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Idade:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.idade || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cidade:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cidade || 'N/A'}</div>
+                const content = `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 15px;">👤 Informações Pessoais</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Nome:</label>
+                                <input type="text" id="edit-name" class="input" value="${participant.nome_completo || ''}" 
+                                    onblur="updateParticipantName('${participantId}', this.value)">
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">WhatsApp:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.whatsapp || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">E-mail:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.email || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Sexo:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.sexo || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Idade:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.idade || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cidade:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cidade || 'N/A'}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">🎯 Informações do Retiro</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Função no Retiro:</label>
-                            <select id="edit-funcao" class="input" onchange="updateParticipantFunction('${participantId}', this.value)">
-                                <option value="TRABALHO" ${participant.vai_servir_receber === 'TRABALHO' ? 'selected' : ''}>TRABALHO</option>
-                                <option value="ENCONTRISTA" ${participant.vai_servir_receber === 'ENCONTRISTA' ? 'selected' : ''}>ENCONTRISTA</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cor da Rede:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cor_rede || 'N/A'}</div>
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 15px;">🎯 Informações do Retiro</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Função no Retiro:</label>
+                                <select id="edit-funcao" class="input" onchange="updateParticipantFunction('${participantId}', this.value)">
+                                    <option value="TRABALHO" ${participant.vai_servir_receber === 'TRABALHO' ? 'selected' : ''}>TRABALHO</option>
+                                    <option value="ENCONTRISTA" ${participant.vai_servir_receber === 'ENCONTRISTA' ? 'selected' : ''}>ENCONTRISTA</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cor da Rede:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.cor_rede || 'N/A'}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">💰 Informações de Pagamento</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Status:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${getStatusText(participant.status_pagamento)}</div>
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 15px;">💰 Informações de Pagamento</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Status:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${getStatusText(participant.status_pagamento)}</div>
+                            </div>
+                            <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Valor Pago:</label>
+                            ${showDeleteButton ? 
+                                `<input type="text" id="edit-valor-pago" class="input" value="${participant.valor_pago || ''}" 
+                                    onblur="updateParticipantValuePaid('${participantId}', this.value)" 
+                                    placeholder="Ex: 150,00" style="background: #333; border: 2px solid #ff6b35;">` :
+                                `<div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.valor_pago || 'N/A'}</div>`
+                            }
                         </div>
-                        <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Valor Pago:</label>
-                        ${showDeleteButton ? 
-                            `<input type="text" id="edit-valor-pago" class="input" value="${participant.valor_pago || ''}" 
-                                onblur="updateParticipantValuePaid('${participantId}', this.value)" 
-                                placeholder="Ex: 150,00" style="background: #333; border: 2px solid #ff6b35;">` :
-                            `<div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.valor_pago || 'N/A'}</div>`
-                        }
-                    </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Forma de Pagamento:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.forma_pagamento || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Atendente:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.atendente || 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">📅 Datas</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Inscrição:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${formatDateTime(convertToLocalTime(participant.data_inscricao))}</div>
-                        </div>
-                        <div>
-                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Confirmação:</label>
-                            <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.data_confirmacao_pagamento ? formatDateTime(convertToLocalTime(participant.data_confirmacao_pagamento)) : 'N/A'}</div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Forma de Pagamento:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.forma_pagamento || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Atendente:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.atendente || 'N/A'}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div style="display: grid; grid-template-columns: ${showDeleteButton ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'}; gap: 10px; margin-top: 20px;">
-                    <button onclick="openPaymentsModal('${participantId}')" class="btn btn-success">💰 Gerenciar Pagamentos</button>
-                    <button onclick="generateReceipt(${participantId})" class="btn btn-info">🧾 Gerar Recibo</button>
-                    <button onclick="openEmailModal('${participantId}')" class="btn btn-warning">📧 Enviar E-mail</button>
-                    ${showDeleteButton ? `<button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>` : ''}
-                </div>
-            `;
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 15px;">📅 Datas</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Inscrição:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${formatDateTime(convertToLocalTime(participant.data_inscricao))}</div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Data de Confirmação:</label>
+                                <div style="color: white; background: #222; padding: 10px; border-radius: 5px;">${participant.data_confirmacao_pagamento ? formatDateTime(convertToLocalTime(participant.data_confirmacao_pagamento)) : 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
 
-            document.getElementById('details-content').innerHTML = content;
-            document.getElementById('details-modal').style.display = 'flex';
+                    <div style="display: grid; grid-template-columns: ${showDeleteButton ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'}; gap: 10px; margin-top: 20px;">
+                        <button onclick="openPaymentsModal('${participantId}')" class="btn btn-success">💰 Gerenciar Pagamentos</button>
+                        <button onclick="generateReceipt(${participantId})" class="btn btn-info">🧾 Gerar Recibo</button>
+                        <button onclick="openEmailModal('${participantId}')" class="btn btn-warning">📧 Enviar E-mail</button>
+                        ${showDeleteButton ? `<button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>` : ''}
+                    </div>
+                `;
+
+                document.getElementById('details-content').innerHTML = content;
+                document.getElementById('details-modal').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('❌ Erro ao abrir detalhes:', error);
+                showNotification('Erro ao abrir detalhes: ' + error.message, 'error');
+            }
         }
 
         function closeDetailsModal() {
@@ -2523,23 +2653,22 @@ async function updateInscricoesTable(participants) {
             }
         }
 
-        // ===== SISTEMA DE RECIBOS CORRIGIDO =====
+        // ===== PASSO 5: SUBSTITUIR A FUNÇÃO generateReceipt COMPLETA =====
+        // Encontre a função generateReceipt no seu código e substitua por esta:
+
         async function generateReceipt(participantId) {
             try {
                 console.log('🧾 Gerando recibo para participante:', participantId);
                 
-                const participant = allParticipants.find(p => p.id == participantId);
-                if (!participant) {
-                    showNotification('Participante não encontrado', 'error');
-                    return;
-                }
+                // ✅ BUSCAR DADOS FRESCOS DO PARTICIPANTE
+                const participant = await getParticipantById(participantId);
 
-                // ✅ BUSCAR ÚLTIMO PAGAMENTO - Ordenar por data_pagamento (mais recente primeiro)
+                // ✅ BUSCAR ÚLTIMO PAGAMENTO
                 const { data: payments, error } = await supabase
                     .from('pagamentos_históricos')
                     .select('*')
                     .eq('inscricao_id', participantId)
-                    .order('data_pagamento', { ascending: false })  // ✅ CORREÇÃO: Por data_pagamento
+                    .order('data_pagamento', { ascending: false })
                     .limit(1);
 
                 if (error) {
@@ -2869,7 +2998,6 @@ async function updateInscricoesTable(participants) {
             const receiptArea = document.getElementById('receipt-area');
             receiptArea.style.display = 'none';
             };
-
 
         // ===== EVENT LISTENERS PARA FILTROS =====
         document.getElementById('filter-data').addEventListener('change', updateDashboard);
